@@ -1,64 +1,51 @@
-// Run: npx expo install expo-image-picker
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  TextInput, 
-  Image, 
-  Alert, 
-  KeyboardAvoidingView, 
+  Switch,
+  Modal,
+  ActivityIndicator,
+  useWindowDimensions,
   Platform,
-  ActivityIndicator
+  Alert
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMyMoto } from '../../context/MotoContext';
 import { useTheme } from '../../context/ThemeContext';
-import { supabase } from '../../../data/supabaseClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { TutorialModal } from '../../components/TutorialModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LegalDocModal, LegalDocType } from '../../components/LegalDocModal';
-import { EmergencyCrashModal } from '../../components/EmergencyCrashModal';
-import { isWebPlatform } from '../../utils/platformMode';
-import { isCar } from '../../../domain/entities/Moto';
-import { VehicleReportModal } from '../../components/VehicleReportModal';
+import { Generator } from '../../../domain/entities/Generator';
 
-interface ProfileTabProps {
-  onOpenReport?: () => void;
-}
+export const ProfileTab: React.FC = () => {
+  const { 
+    activeGenerator, 
+    generators, 
+    selectGenerator, 
+    deleteGenerator, 
+    unassignGeneratorFromUser,
+    setIsAddingMoto, 
+    currentUser, 
+    isSuperUser,
+    logout 
+  } = useMyMoto();
+  const { colors, isDark, toggleTheme } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
 
-export const ProfileTab: React.FC<ProfileTabProps> = ({ onOpenReport }) => {
-  const { myMoto, motos, selectMoto, deleteMoto, updateMoto, logout, setIsAddingMoto } = useMyMoto();
-  const { colors, mode, isDark, toggleTheme } = useTheme();
-  
-  const [userData, setUserData] = useState<any>(null);
-  const [uploading, setUploading] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
+  // Modals de confirmación cross-platform (Web y Nativo)
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [plantActionTarget, setPlantActionTarget] = useState<{ id: string; name: string; isDeleteDB: boolean } | null>(null);
 
-  // Form Fields
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [docId, setDocId] = useState('');
-  const [city, setCity] = useState('');
-  const [bloodType, setBloodType] = useState('O+');
-  const [emergencyContact, setEmergencyContact] = useState('');
-  const [emergencyPhone, setEmergencyPhone] = useState('');
-  const [emergencyEmail, setEmergencyEmail] = useState('');
-
-  const [motoYear, setMotoYear] = useState('');
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
-
-  // Legal Modal Management
-  const [showLegalModal, setShowLegalModal] = useState(false);
-  const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>('terms');
-  const [showSOSModal, setShowSOSModal] = useState(false);
+  // Plantas asignadas al usuario: Superadmin ve toda la flota, operador ve las plantas a su cargo
+  const displayGenerators = useMemo(() => {
+    if (isSuperUser || !currentUser?.assignedGeneratorIds || currentUser.assignedGeneratorIds.length === 0) {
+      return generators;
+    }
+    const filtered = generators.filter(g => currentUser.assignedGeneratorIds?.includes(g.id));
+    return filtered.length > 0 ? filtered : generators;
+  }, [generators, isSuperUser, currentUser]);
 
   const F = {
     extrabold: 'Montserrat_800ExtraBold',
@@ -68,802 +55,504 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onOpenReport }) => {
     regular: 'Montserrat_400Regular',
   };
 
-  useEffect(() => {
-    // 1. Load local cached avatar immediately
-    AsyncStorage.getItem('@user_avatar_url').then(cached => {
-      if (cached) setLocalAvatarUri(cached);
-    });
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
 
-    // 2. Load local cached profile data immediately so fields are never empty
-    AsyncStorage.getItem('@user_profile_data').then(cached => {
-      if (cached) {
-        try {
-          const p = JSON.parse(cached);
-          if (p.first_name) setFirstName(p.first_name);
-          if (p.last_name) setLastName(p.last_name);
-          if (p.phone) setPhone(p.phone);
-          if (p.document_id) setDocId(p.document_id);
-          if (p.city) setCity(p.city);
-          if (p.blood_type) setBloodType(p.blood_type);
-          if (p.emergency_contact_name) setEmergencyContact(p.emergency_contact_name);
-          if (p.emergency_contact_phone) setEmergencyPhone(p.emergency_contact_phone);
-          if (p.emergency_email) setEmergencyEmail(p.emergency_email);
-        } catch (e) {}
-      }
-    });
-
-    // 3. Sync from Supabase session
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) {
-        setUserData(data.user);
-        const meta = data.user.user_metadata || {};
-        if (meta.first_name) setFirstName(meta.first_name);
-        if (meta.last_name) setLastName(meta.last_name);
-        if (meta.phone) setPhone(meta.phone);
-        if (meta.document_id || meta.dni) setDocId(meta.document_id || meta.dni);
-        if (meta.city || meta.state) setCity(meta.city || meta.state);
-        if (meta.blood_type) setBloodType(meta.blood_type);
-        if (meta.emergency_contact_name) setEmergencyContact(meta.emergency_contact_name);
-        if (meta.emergency_contact_phone) setEmergencyPhone(meta.emergency_contact_phone);
-        if (meta.emergency_email) setEmergencyEmail(meta.emergency_email);
-
-        if (meta.avatar_url) {
-          setLocalAvatarUri(meta.avatar_url);
-          AsyncStorage.setItem('@user_avatar_url', meta.avatar_url);
-        }
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (myMoto) {
-      setMotoYear(myMoto.year.toString());
-    }
-  }, [myMoto?.year, myMoto?.id]);
-
-  if (!myMoto) return null;
-
-  const displayName = firstName || 'Piloto';
-  const displayLastName = lastName || '';
-  const avatarUrl = localAvatarUri || userData?.user_metadata?.avatar_url;
-
-  const pickImage = async () => {
+  const handleConfirmLogout = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
+      setIsLoggingOut(true);
+      await logout();
+      setShowLogoutModal(false);
+    } catch (err) {
+      console.warn('Error during logout:', err);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
-      if (!result.canceled && result.assets && result.assets[0]?.uri) {
-        setUploading(true);
-        
-        let userId = userData?.id;
-        if (!userId) {
-          const { data: authData } = await supabase.auth.getUser();
-          userId = authData?.user?.id;
-        }
+  // Solo Superadmin puede eliminar de la BD. Operadores solo desvinculan de su perfil.
+  const handleOpenPlantAction = (id: string, name: string, isDeleteDB: boolean) => {
+    setPlantActionTarget({ id, name, isDeleteDB });
+  };
 
-        if (!userId) {
-          Alert.alert('Error', 'No se pudo identificar tu sesión de usuario');
+  const handleConfirmPlantAction = async () => {
+    if (!plantActionTarget) return;
+    try {
+      if (plantActionTarget.isDeleteDB) {
+        if (!isSuperUser) {
+          Alert.alert('Acceso Denegado', 'Solo el Super Administrador puede eliminar plantas de la base de datos.');
           return;
         }
-
-        const fileUri = result.assets[0].uri;
-        const ext = fileUri.substring(fileUri.lastIndexOf('.') + 1) || 'jpg';
-        const path = `${userId}/avatar.${ext}`;
-        
-        const response = await fetch(fileUri);
-        const blob = await response.blob();
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(path, blob, {
-            contentType: `image/${ext}`,
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-        const freshUrl = `${publicUrl}?t=${Date.now()}`;
-
-        setLocalAvatarUri(freshUrl);
-        await AsyncStorage.setItem('@user_avatar_url', freshUrl);
-
-        const { data: updateData, error: updateError } = await supabase.auth.updateUser({
-          data: { avatar_url: freshUrl }
-        });
-
-        if (updateError) throw updateError;
-        
-        if (updateData?.user) {
-          setUserData(updateData.user);
+        await deleteGenerator(plantActionTarget.id);
+      } else {
+        // Desvincular de perfil de usuario sin tocar la base de datos de plantas
+        if (currentUser?.id) {
+          await unassignGeneratorFromUser(currentUser.id, plantActionTarget.id);
         }
-        
-        Alert.alert('Éxito', 'Foto de perfil actualizada correctamente');
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo actualizar la foto de perfil');
     } finally {
-      setUploading(false);
+      setPlantActionTarget(null);
     }
   };
 
-  const handleSaveProfileData = async () => {
-    setSavingProfile(true);
-    try {
-      const profilePayload = {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        phone: phone.trim(),
-        document_id: docId.trim(),
-        city: city.trim(),
-        blood_type: bloodType,
-        emergency_contact_name: emergencyContact.trim(),
-        emergency_contact_phone: emergencyPhone.trim(),
-        emergency_email: emergencyEmail.trim(),
-      };
-
-      // 1. Persist locally to device storage immediately
-      await AsyncStorage.setItem('@user_profile_data', JSON.stringify(profilePayload));
-
-      // 2. Persist to Supabase auth user metadata
-      const { data: updateData, error } = await supabase.auth.updateUser({
-        data: profilePayload
-      });
-
-      if (error) {
-        console.warn('Supabase updateUser notice:', error);
-      }
-      if (updateData?.user) {
-        setUserData(updateData.user);
-      }
-      Alert.alert('Perfil Guardado', 'Tus datos personales y de emergencia han sido guardados con éxito.');
-    } catch (e: any) {
-      Alert.alert('Perfil Guardado', 'Tus datos se guardaron localmente en el dispositivo.');
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
-  const confirmDeleteMoto = (id: string, name?: string) => {
-    const label = name ? `el vehículo "${name}"` : 'este vehículo';
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(`¿Estás seguro de que deseas eliminar ${label}? Esta acción no se puede deshacer.`);
-      if (confirmed) {
-        deleteMoto(id);
-      }
-      return;
-    }
-    Alert.alert(
-      'Eliminar Vehículo',
-      `¿Estás seguro de que deseas eliminar ${label}? Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => deleteMoto(id) }
-      ]
-    );
-  };
-
-  const handleAddMoto = () => {
-    setIsAddingMoto(true);
-  };
-
-  const bloodTypes = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+  const cardBg = isDark ? '#191C24' : '#FFFFFF';
+  const textPrimary = colors.onSurface;
+  const textSecondary = colors.onSurfaceVariant;
+  const isSmallPhone = windowWidth < 360;
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
-          
-          {/* PROFILE AVATAR & HEADER */}
-          <View style={{ alignItems: 'center', marginBottom: 24 }}>
-            <TouchableOpacity onPress={pickImage} disabled={uploading} style={[styles.avatarBox, { backgroundColor: colors.primary }]}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              ) : (
-                <Text style={{ fontSize: 38, fontFamily: F.bold, color: colors.onPrimary }}>
-                  {displayName.charAt(0)}{displayLastName.charAt(0)}
-                </Text>
-              )}
-              {uploading && (
-                 <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }]}>
-                   <ActivityIndicator color="#FFF" />
-                 </View>
-              )}
-              <View style={styles.cameraIconBadge}>
-                <MaterialIcons name="photo-camera" size={16} color="#FFF" />
-              </View>
-            </TouchableOpacity>
-            
-            <Text style={{ fontSize: 22, fontFamily: F.bold, color: colors.onSurface, marginTop: 12 }}>
-              {displayName} {displayLastName}
-            </Text>
-            <Text style={{ fontSize: 13, fontFamily: F.medium, color: colors.onSurfaceVariant, marginTop: 2 }}>
-              {userData?.email || 'Piloto Registrado'}
-            </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }} edges={['top']}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: isSmallPhone ? 14 : 20 }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={{ fontFamily: F.bold, color: textSecondary, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            CONFIGURACIÓN Y CUENTA
+          </Text>
+          <Text style={{ fontFamily: F.extrabold, color: textPrimary, fontSize: isSmallPhone ? 20 : 23, marginTop: 2 }}>
+            Perfil de Operación
+          </Text>
+        </View>
+
+        {/* User Profile Card */}
+        <View style={[styles.userCard, { backgroundColor: cardBg }]}>
+          <View style={styles.avatarCircle}>
+            <MaterialIcons name="person" size={28} color="#FFFFFF" />
           </View>
-
-          {/* SECCIÓN 1: DATOS PERSONALES DEL PILOTO */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontSize: 15, fontFamily: F.bold, color: colors.onSurface }}>Datos Personales</Text>
-              <MaterialIcons name="person-outline" size={20} color={colors.primary} />
-            </View>
-
-            <View style={{ gap: 10 }}>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Nombre</Text>
-                  <TextInput 
-                    style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="Tu nombre"
-                    placeholderTextColor={colors.onSurfaceVariant}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Apellido</Text>
-                  <TextInput 
-                    style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Tu apellido"
-                    placeholderTextColor={colors.onSurfaceVariant}
-                  />
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Cédula / DNI</Text>
-                  <TextInput 
-                    style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                    value={docId}
-                    onChangeText={setDocId}
-                    placeholder="V-12345678"
-                    placeholderTextColor={colors.onSurfaceVariant}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Teléfono / WhatsApp</Text>
-                  <TextInput 
-                    style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="+58 412..."
-                    placeholderTextColor={colors.onSurfaceVariant}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-              </View>
-
-              <View>
-                <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Ciudad / Ubicación</Text>
-                <TextInput 
-                  style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="Ej. Caracas, Miranda"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                />
-              </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 15 }} numberOfLines={1}>
+              {currentUser?.fullName || 'Super Administrador Empresas del Valle'}
+            </Text>
+            <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 12, marginTop: 1 }} numberOfLines={1}>
+              {currentUser?.email || 'admin@empresasdelvalle.com'}
+            </Text>
+            <View style={[
+              styles.rolePill, 
+              { backgroundColor: currentUser?.role === 'superadmin' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(37, 99, 235, 0.15)' }
+            ]}>
+              <Text style={{ 
+                fontFamily: F.bold, 
+                fontSize: 10, 
+                color: currentUser?.role === 'superadmin' ? '#F59E0B' : colors.primary 
+              }}>
+                ROL: {currentUser?.role?.toUpperCase() || 'OPERADOR'}
+              </Text>
             </View>
           </View>
+        </View>
 
-          {/* SECCIÓN 2: SEGURIDAD Y CONTACTO DE EMERGENCIA */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <MaterialCommunityIcons name="shield-cross" size={20} color="#FF453A" />
-                <Text style={{ fontSize: 15, fontFamily: F.bold, color: colors.onSurface }}>Ficha Médica & Emergencia</Text>
-              </View>
-              <View style={[styles.alertPill, { backgroundColor: 'rgba(255,69,58,0.15)' }]}>
-                <Text style={{ fontFamily: F.bold, color: '#FF453A', fontSize: 10 }}>VITAL</Text>
-              </View>
-            </View>
-
-            {/* Selector de Tipo de Sangre */}
-            <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Tipo de Sangre:</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              {bloodTypes.map(bt => (
-                <TouchableOpacity
-                  key={bt}
-                  onPress={() => setBloodType(bt)}
-                  style={[
-                    styles.bloodChip,
-                    { 
-                      backgroundColor: bloodType === bt ? colors.primary : colors.surfaceContainer,
-                      borderColor: colors.outlineVariant 
-                    }
-                  ]}
-                >
-                  <Text style={{ fontFamily: F.bold, fontSize: 12, color: bloodType === bt ? colors.onPrimary : colors.onSurface }}>
-                    {bt}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={{ gap: 10 }}>
-              <View>
-                <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Nombre Contacto de Emergencia</Text>
-                <TextInput 
-                  style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                  value={emergencyContact}
-                  onChangeText={setEmergencyContact}
-                  placeholder="Ej. Esposa / Madre / Hermano"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                />
-              </View>
-              
-              <View>
-                <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Teléfono de Emergencia</Text>
-                <TextInput 
-                  style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                  value={emergencyPhone}
-                  onChangeText={setEmergencyPhone}
-                  placeholder="+58 424..."
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  keyboardType="phone-pad"
-                />
-              </View>
-
-              <View>
-                <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>Correo Familiar Designado (Aviso GPS / SOS)</Text>
-                <TextInput 
-                  style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.medium }]} 
-                  value={emergencyEmail}
-                  onChangeText={setEmergencyEmail}
-                  placeholder="familiar@correo.com"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
-
-            {/* Botón Guardar Cambios del Perfil */}
-            <TouchableOpacity 
-              onPress={handleSaveProfileData} 
-              disabled={savingProfile}
-              style={[styles.saveBtn, { backgroundColor: colors.primary, marginTop: 16 }]}
-            >
-              {savingProfile ? (
-                <ActivityIndicator color={colors.onPrimary} />
-              ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <MaterialIcons name="save" size={18} color={colors.onPrimary} />
-                  <Text style={{ fontFamily: F.bold, color: colors.onPrimary, fontSize: 14 }}>Guardar Datos del Piloto</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {/* Protocolo de Emergencia & SOS (Solo visible en versión Web) */}
-            {isWebPlatform() && (
+        {/* Fleet Section */}
+        <View style={{ marginTop: 22 }}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 15 }}>
+              {isSuperUser ? `Plantas Eléctricas Flota (${displayGenerators.length})` : `Plantas a tu Cargo (${displayGenerators.length})`}
+            </Text>
+            {isSuperUser && (
               <TouchableOpacity 
-                onPress={() => setShowSOSModal(true)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'rgba(255, 69, 58, 0.12)',
-                  borderColor: 'rgba(255, 69, 58, 0.45)',
-                  borderWidth: 1,
-                  paddingVertical: 11,
-                  borderRadius: 14,
-                  marginTop: 10,
-                  gap: 8,
-                }}
+                style={[styles.addPlantBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setIsAddingMoto(true)}
                 activeOpacity={0.8}
               >
-                <MaterialIcons name="warning" size={18} color="#FF453A" />
-                <Text style={{ fontFamily: F.bold, color: '#FF453A', fontSize: 13, letterSpacing: 0.3 }}>
-                  Ver Protocolo de Emergencia SOS
-                </Text>
+                <MaterialIcons name="add" size={16} color="#FFFFFF" />
+                <Text style={{ fontFamily: F.bold, color: '#FFFFFF', fontSize: 11 }}>Nueva Planta</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* MIS MOTOS */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontSize: 15, fontFamily: F.bold, color: colors.onSurface }}>Mis Vehículos Registrados</Text>
-              <MaterialCommunityIcons name="engine" size={20} color={colors.primary} />
-            </View>
-            <ScrollView 
-              horizontal 
-              keyboardShouldPersistTaps="handled"
-              showsHorizontalScrollIndicator={false} 
-              contentContainerStyle={{ gap: 12, paddingVertical: 4 }}
-            >
-              {motos?.map((m) => {
-                const isSelected = m.id === myMoto.id;
-                const vehicleIsCar = isCar(m);
-                return (
-                  <TouchableOpacity 
-                    key={m.id}
-                    onPress={() => selectMoto(m.id)}
-                    onLongPress={() => confirmDeleteMoto(m.id)}
-                    activeOpacity={0.8}
-                    style={{
-                      backgroundColor: colors.surfaceContainer,
-                      padding: 14,
-                      borderRadius: 16,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? colors.primary : (mode === 'dark' ? 'rgba(64, 72, 92, 0.4)' : colors.outlineVariant),
-                      minWidth: 175,
-                      maxWidth: 220,
-                      cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
-                    }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, paddingRight: 4 }}>
-                        <MaterialIcons 
-                          name={vehicleIsCar ? "directions-car" : "two-wheeler"} 
-                          size={18} 
-                          color={isSelected ? colors.primary : colors.onSurfaceVariant} 
-                        />
-                        <Text style={{ fontFamily: F.bold, color: isSelected ? colors.primary : colors.onSurface, fontSize: 13, flex: 1 }} numberOfLines={1}>
-                          {m.brand}
-                        </Text>
-                      </View>
-                      {motos.length > 1 && (
-                        <TouchableOpacity 
-                          onPress={(e) => {
-                            e?.stopPropagation?.();
-                            confirmDeleteMoto(m.id, `${m.brand} ${m.model}`);
-                          }} 
-                          style={{ 
-                            padding: 6, 
-                            borderRadius: 8,
-                            backgroundColor: mode === 'dark' ? 'rgba(255, 69, 58, 0.18)' : 'rgba(255, 69, 58, 0.12)',
-                            cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined 
-                          }}
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          accessibilityLabel="Eliminar vehículo"
-                        >
-                          <MaterialIcons name="delete-outline" size={17} color="#FF453A" />
-                        </TouchableOpacity>
-                      )}
-                      {isSelected && (
-                        <MaterialIcons name="check-circle" size={16} color={colors.primary} />
-                      )}
+          <View style={{ gap: 10 }}>
+            {displayGenerators.map((gen: Generator) => {
+              const isActive = gen.id === activeGenerator?.id;
+              return (
+                <TouchableOpacity
+                  key={gen.id}
+                  style={[
+                    styles.genItemCard,
+                    { backgroundColor: cardBg, borderColor: isActive ? colors.primary : 'transparent' },
+                    isActive && { borderWidth: 2 }
+                  ]}
+                  onPress={() => selectGenerator(gen.id)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                    <View style={[
+                      styles.genIconCircle, 
+                      { backgroundColor: isActive ? 'rgba(37, 99, 235, 0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : '#F1F4F9') }
+                    ]}>
+                      <MaterialCommunityIcons name="engine" size={20} color={isActive ? colors.primary : textSecondary} />
                     </View>
-                    
-                    <Text style={{ fontFamily: F.extrabold, color: colors.onSurface, fontSize: 14 }} numberOfLines={1}>
-                      {m.model}
-                    </Text>
-                    
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                      <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 11 }}>
-                        Año {m.year}
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 14 }}>
+                          {gen.name}
+                        </Text>
+                        {isActive && (
+                          <View style={styles.activeTag}>
+                            <Text style={{ fontFamily: F.bold, color: '#FFFFFF', fontSize: 9 }}>ACTIVA</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 11, marginTop: 2 }}>
+                        {gen.brand} {gen.model} • {gen.capacityKva} kVA • {gen.currentHours.toFixed(1)} hrs
                       </Text>
-                      <View style={{ backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                        <Text style={{ fontFamily: F.bold, color: colors.secondary, fontSize: 10 }}>
-                          {m.plate || 'Sin placa'}
-                        </Text>
-                      </View>
                     </View>
-                  </TouchableOpacity>
-                );
-              })}
-              
+                  </View>
+
+                  {/* Acciones de Planta: Solo Superadmin puede borrar de la BD. Operadores solo desvinculan */}
+                  {isSuperUser ? (
+                    <TouchableOpacity 
+                      onPress={() => handleOpenPlantAction(gen.id, gen.name, true)}
+                      style={{ padding: 8 }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <MaterialIcons name="delete-outline" size={19} color="#EF4444" />
+                    </TouchableOpacity>
+                  ) : displayGenerators.length > 1 ? (
+                    <TouchableOpacity 
+                      onPress={() => handleOpenPlantAction(gen.id, gen.name, false)}
+                      style={{ padding: 8 }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <MaterialIcons name="link-off" size={18} color={textSecondary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Preferences */}
+        <View style={{ marginTop: 24 }}>
+          <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 15, marginBottom: 10 }}>
+            Preferencias de la Aplicación
+          </Text>
+
+          <View style={[styles.prefCard, { backgroundColor: cardBg }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 10 }}>
+              <MaterialIcons name={isDark ? 'dark-mode' : 'light-mode'} size={22} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 14 }}>
+                  Modo Oscuro (Dark Theme)
+                </Text>
+                <Text style={{ fontFamily: F.regular, color: textSecondary, fontSize: 11, marginTop: 2 }}>
+                  Optimizado para salas de control y visibilidad técnica nocturna
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: '#767577', true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity 
+          style={styles.logoutBtn}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="logout" size={19} color="#EF4444" />
+          <Text style={{ fontFamily: F.bold, color: '#EF4444', fontSize: 14 }}>
+            Cerrar Sesión
+          </Text>
+        </TouchableOpacity>
+
+        {/* Corporate Security Footer */}
+        <View style={styles.corporateFooter}>
+          <View style={styles.footerSealRow}>
+            <MaterialIcons name="verified-user" size={14} color={isDark ? '#bdd2fe' : '#4b5f84'} />
+            <Text style={[styles.footerSealText, { fontFamily: F.semibold, color: textSecondary }]}>
+              Empresas Del Valle • Plataforma Segura
+            </Text>
+            <Text style={{ color: textSecondary }}>•</Text>
+            <Text style={{ fontFamily: F.bold, color: isDark ? '#bdd2fe' : '#001136', fontSize: 11 }}>v2.4</Text>
+          </View>
+          <Text style={[styles.footerLegalText, { fontFamily: F.medium, color: textSecondary }]}>
+            CONECTIVIDAD CIFRADA TLS 1.3
+          </Text>
+        </View>
+
+      </ScrollView>
+
+      {/* ==================================================== */}
+      {/* MODAL: CONFIRMACIÓN CERRAR SESIÓN */}
+      {/* ==================================================== */}
+      <Modal
+        visible={showLogoutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isLoggingOut && setShowLogoutModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.confirmDialog, { backgroundColor: cardBg }]}>
+            <View style={styles.logoutIconCircle}>
+              <MaterialIcons name="logout" size={26} color="#EF4444" />
+            </View>
+
+            <Text style={{ fontFamily: F.extrabold, color: textPrimary, fontSize: 18, textAlign: 'center', marginTop: 14 }}>
+              ¿Cerrar Sesión?
+            </Text>
+            <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+              ¿Estás seguro de que deseas salir del dispositivo? Deberás ingresar tus credenciales nuevamente para acceder.
+            </Text>
+
+            <View style={styles.confirmBtnRow}>
               <TouchableOpacity
-                onPress={handleAddMoto}
+                style={[styles.btnCancel, { borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' }]}
+                onPress={() => setShowLogoutModal(false)}
+                disabled={isLoggingOut}
                 activeOpacity={0.7}
-                style={{
-                  backgroundColor: mode === 'dark' ? 'rgba(0, 227, 253, 0.08)' : 'rgba(39, 95, 227, 0.06)',
-                  padding: 14,
-                  borderRadius: 16,
-                  borderWidth: 1.5,
-                  borderStyle: 'dashed',
-                  borderColor: mode === 'dark' ? '#00e3fd' : colors.primary,
-                  minWidth: 165,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
-                }}>
-                <MaterialIcons name="add-circle" size={26} color={mode === 'dark' ? '#00e3fd' : colors.primary} />
-                <Text style={{ fontFamily: F.bold, color: mode === 'dark' ? '#00e3fd' : colors.primary, fontSize: 12, textAlign: 'center' }}>
-                  Anexar un nuevo vehículo
+              >
+                <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 13 }}>
+                  Cancelar
                 </Text>
               </TouchableOpacity>
-            </ScrollView>
-          </View>
 
-          {/* GENERADOR DE REPORTE TÉCNICO PDF */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: '#e53e3e', borderWidth: 1.2 }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <MaterialIcons name="picture-as-pdf" size={22} color="#e53e3e" />
-                <Text style={{ fontSize: 15, fontFamily: F.bold, color: colors.onSurface }}>Expediente & Reporte PDF</Text>
-              </View>
-              <View style={{ backgroundColor: 'rgba(229, 62, 62, 0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
-                <Text style={{ fontFamily: F.bold, color: '#e53e3e', fontSize: 10 }}>OFICIAL</Text>
-              </View>
+              <TouchableOpacity
+                style={[styles.btnConfirmLogout, { backgroundColor: '#EF4444' }]}
+                onPress={handleConfirmLogout}
+                disabled={isLoggingOut}
+                activeOpacity={0.85}
+              >
+                {isLoggingOut ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <MaterialIcons name="logout" size={16} color="#FFFFFF" />
+                    <Text style={{ fontFamily: F.bold, color: '#FFFFFF', fontSize: 13 }}>
+                      Cerrar Sesión
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
-            <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12, lineHeight: 18, marginBottom: 14 }}>
-              Genera un informe completo en PDF con especificaciones OEM, estado de cada pieza, gráficas de consumo/gasolina y bitácora de servicios.
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================================================== */}
+      {/* MODAL: ACCIONES DE PLANTA (ELIMINAR BD O DESVINCULAR) */}
+      {/* ==================================================== */}
+      <Modal
+        visible={Boolean(plantActionTarget)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPlantActionTarget(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.confirmDialog, { backgroundColor: cardBg }]}>
+            <View style={[
+              styles.logoutIconCircle, 
+              { backgroundColor: plantActionTarget?.isDeleteDB ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)' }
+            ]}>
+              <MaterialCommunityIcons 
+                name={plantActionTarget?.isDeleteDB ? "delete-sweep" : "link-off"} 
+                size={26} 
+                color={plantActionTarget?.isDeleteDB ? "#EF4444" : "#F59E0B"} 
+              />
+            </View>
+
+            <Text style={{ fontFamily: F.extrabold, color: textPrimary, fontSize: 18, textAlign: 'center', marginTop: 14 }}>
+              {plantActionTarget?.isDeleteDB ? '¿Eliminar de la Base de Datos?' : '¿Desvincular de tu Perfil?'}
             </Text>
-            <TouchableOpacity
-              onPress={() => onOpenReport ? onOpenReport() : setShowReportModal(true)}
-              activeOpacity={0.8}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                backgroundColor: '#e53e3e',
-                paddingVertical: 12,
-                borderRadius: 12,
-                cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
-              }}
-            >
-              <MaterialIcons name="print" size={18} color="#ffffff" />
-              <Text style={{ fontFamily: F.bold, color: '#ffffff', fontSize: 13, letterSpacing: 0.5 }}>
-                Generar Reporte PDF del Vehículo
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+              {plantActionTarget?.isDeleteDB 
+                ? `Esta acción eliminará permanentemente la planta "${plantActionTarget?.name}" de la flota corporativa y del panel administrativo.`
+                : `La planta "${plantActionTarget?.name}" se retirará de tu perfil móvil. Seguirá activa y protegida en la base de datos y en el panel web.`}
+            </Text>
 
-          {/* DETALLES DE LA MOTO ACTUAL */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontSize: 15, fontFamily: F.bold, color: colors.onSurface }}>Ajustes del Vehículo Activo</Text>
-              <MaterialIcons name="edit" size={20} color={colors.primary} />
-            </View>
-            
-            <View style={{ gap: 12 }}>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <View style={{ flex: 2 }}>
-                  <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>MARCA Y MODELO</Text>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 15, marginTop: 8 }}>{myMoto.brand} {myMoto.model}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>AÑO</Text>
-                  <TextInput 
-                    style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]} 
-                    value={motoYear}
-                    onChangeText={setMotoYear}
-                    onBlur={() => updateMoto({ year: parseInt(motoYear) || myMoto.year })}
-                    keyboardType="numeric"
-                    maxLength={4}
-                  />
-                </View>
-              </View>
-              
-              <View>
-                <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>N° DE PLACA</Text>
-                <TextInput 
-                  style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]} 
-                  value={myMoto.plate || ''}
-                  onChangeText={(t) => updateMoto({ plate: t })}
-                  placeholder="Ej. AB1C23D"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  autoCapitalize="characters"
-                />
-              </View>
-              
-              <View>
-                <Text style={[styles.inputLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>KILOMETRAJE ACTUAL (Odómetro)</Text>
-                <TextInput 
-                  style={[styles.inputField, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]} 
-                  value={myMoto.currentOdometer?.toString() || ''}
-                  onChangeText={(t) => updateMoto({ currentOdometer: parseInt(t) || 0 })}
-                  placeholder="0"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <TouchableOpacity 
-                onPress={() => updateMoto({ isFromAgency: !myMoto.isFromAgency })}
-                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surfaceContainer, padding: 14, borderRadius: 14, marginTop: 4 }}>
-                <Text style={{ fontFamily: F.semibold, color: colors.onSurface }}>Comprada de Agencia (0 Km)</Text>
-                <MaterialIcons name={myMoto.isFromAgency ? 'check-box' : 'check-box-outline-blank'} size={24} color={myMoto.isFromAgency ? colors.tertiary : colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* GUÍA & AYUDA */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <TouchableOpacity 
-              onPress={() => setShowTutorial(true)}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <MaterialIcons name="menu-book" size={20} color={colors.primary} />
-                <Text style={{ fontFamily: F.semibold, color: colors.onSurface }}>Tutorial y Guía del Conductor</Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
-            </TouchableOpacity>
-          </View>
-
-          {/* APARIENCIA / TEMA */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <TouchableOpacity 
-              onPress={toggleTheme}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <MaterialIcons name="palette" size={20} color={colors.primary} />
-                <Text style={{ fontFamily: F.semibold, color: colors.onSurface }}>Apariencia del Sistema</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surfaceContainerHigh, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
-                <MaterialIcons name={mode === 'dark' ? 'dark-mode' : 'light-mode'} size={16} color={colors.primary} />
-                <Text style={{ fontFamily: F.bold, color: colors.primary, fontSize: 12 }}>{mode === 'dark' ? 'Oscuro' : 'Claro'}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* MARCO LEGAL & POLÍTICAS */}
-          <View style={[styles.cardSection, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <MaterialIcons name="gavel" size={20} color={colors.primary} />
-              <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 15 }}>
-                Marco Legal & Privacidad
-              </Text>
-            </View>
-
-            <View style={{ gap: 8 }}>
-              {/* Opción 1: Términos y Condiciones */}
+            <View style={styles.confirmBtnRow}>
               <TouchableOpacity
-                onPress={() => {
-                  setSelectedLegalDoc('terms');
-                  setShowLegalModal(true);
-                }}
-                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderBottomWidth: 0.5, borderBottomColor: colors.outlineVariant }}
+                style={[styles.btnCancel, { borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' }]}
+                onPress={() => setPlantActionTarget(null)}
+                activeOpacity={0.7}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <MaterialIcons name="description" size={18} color={colors.primary} />
-                  <Text style={{ fontFamily: F.semibold, color: colors.onSurface, fontSize: 13 }}>
-                    Términos y Condiciones de Uso
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
+                <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 13 }}>
+                  Cancelar
+                </Text>
               </TouchableOpacity>
 
-              {/* Opción 2: Política de Privacidad */}
               <TouchableOpacity
-                onPress={() => {
-                  setSelectedLegalDoc('privacy');
-                  setShowLegalModal(true);
-                }}
-                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderBottomWidth: 0.5, borderBottomColor: colors.outlineVariant }}
+                style={[
+                  styles.btnConfirmLogout, 
+                  { backgroundColor: plantActionTarget?.isDeleteDB ? '#EF4444' : '#F59E0B' }
+                ]}
+                onPress={handleConfirmPlantAction}
+                activeOpacity={0.85}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <MaterialIcons name="security" size={18} color={colors.primary} />
-                  <Text style={{ fontFamily: F.semibold, color: colors.onSurface, fontSize: 13 }}>
-                    Política de Privacidad y Datos Sensibles
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
-
-              {/* Opción 3: Política de Cookies y Almacenamiento */}
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedLegalDoc('cookies');
-                  setShowLegalModal(true);
-                }}
-                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4 }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <MaterialCommunityIcons name="cookie-outline" size={18} color={colors.primary} />
-                  <Text style={{ fontFamily: F.semibold, color: colors.onSurface, fontSize: 13 }}>
-                    Política de Cookies y Almacenamiento Local
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
+                <Text style={{ fontFamily: F.bold, color: '#FFFFFF', fontSize: 13 }}>
+                  {plantActionTarget?.isDeleteDB ? 'Eliminar de la BD' : 'Desvincular'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
 
-          {/* CERRAR SESIÓN */}
-          <TouchableOpacity onPress={logout} style={[styles.logoutBtn, { backgroundColor: colors.errorContainer }]}>
-            <MaterialIcons name="logout" size={20} color={colors.onErrorContainer} style={{ marginRight: 8 }} />
-            <Text style={{ fontFamily: F.bold, color: colors.onErrorContainer }}>Cerrar Sesión</Text>
-          </TouchableOpacity>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-      <TutorialModal visible={showTutorial} onClose={() => setShowTutorial(false)} />
-      <LegalDocModal
-        visible={showLegalModal}
-        initialDoc={selectedLegalDoc}
-        onClose={() => setShowLegalModal(false)}
-      />
-      <EmergencyCrashModal
-        visible={showSOSModal}
-        onClose={() => setShowSOSModal(false)}
-        manualTrigger={true}
-      />
-      <VehicleReportModal
-        visible={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        myMoto={myMoto}
-      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  avatarBox: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
+  scrollContent: {
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 125,
   },
-  cameraIconBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    backgroundColor: '#0A84FF',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFF',
-  },
-  cardSection: {
-    borderRadius: 22,
-    padding: 18,
+  header: {
     marginBottom: 16,
-    borderWidth: 0.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  inputLabel: {
-    fontSize: 11,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  inputField: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
-    fontSize: 14,
-    borderWidth: 0.5,
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: 16,
+    padding: 16,
   },
-  alertPill: {
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rolePill: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    borderRadius: 6,
+  },
+  addPlantBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
   },
-  bloodChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+  genItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
     borderRadius: 12,
-    borderWidth: 0.5,
   },
-  saveBtn: {
-    height: 48,
-    borderRadius: 14,
+  genIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  activeTag: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  prefCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
   },
   logoutBtn: {
     flexDirection: 'row',
-    padding: 16,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    gap: 8,
+    marginTop: 28,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  corporateFooter: {
+    marginTop: 32,
+    alignItems: 'center',
+    gap: 6,
+  },
+  footerSealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    opacity: 0.85,
+  },
+  footerSealText: {
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  footerLegalText: {
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    opacity: 0.6,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  confirmDialog: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 20,
+    padding: 22,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  logoutIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 22,
+    width: '100%',
+  },
+  btnCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  btnConfirmLogout: {
+    flex: 1.3,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

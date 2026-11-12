@@ -1,550 +1,145 @@
-export interface MotoSpecs {
-  engineType?: string;
+export interface GeneratorSpecs {
+  engineBrand?: string;
   displacement?: string;
-  hp?: string;
-  torque?: string;
-  transmission?: string;
-  weight?: string;
+  powerKva?: string;
+  powerKw?: string;
+  voltage?: string;
+  frequency?: string;
+  rpm?: string;
+  fuelType?: string;
   fuelCapacity?: string;
+  fuelConsumption?: string;
   oilCapacity?: string;
   oilTypeRecommended?: string;
   coolantCapacity?: string;
-  frontTireSize?: string;
-  frontTirePressure?: string;
-  rearTireSize?: string;
-  rearTirePressure?: string;
-  chainType?: string;
-  timingBeltType?: string;
-  sparkPlug?: string;
   battery?: string;
-  brakesFront?: string;
-  brakesRear?: string;
-  cooling?: string;
+  alternator?: string;
+  controlPanel?: string;
   maintenanceIntervalOil?: string;
-  maintenanceIntervalTimingBelt?: string;
-  suspensionFront?: string;
-  suspensionRear?: string;
+  maintenanceIntervalFilters?: string;
   dimensions?: string;
-  trunkCapacity?: string;
-  equipment?: string;
+  weight?: string;
+  soundLevel?: string;
+
+  // Compatibility aliases
+  timingBeltType?: string;
+  chainType?: string;
+  brakesFront?: string;
+  frontTirePressure?: string;
+  rearTirePressure?: string;
+  hp?: string;
+  transmission?: string;
 }
 
-export type VehicleSpecs = MotoSpecs;
+export type MotoSpecs = GeneratorSpecs;
+export type VehicleSpecs = GeneratorSpecs;
 
-
-export const MOTO_SPECS_DB: Record<string, MotoSpecs> = {
-  'empire keeway-new horse 150': {
-    engineType: 'Monocilíndrico 4T, OHV con árbol de levas inferior',
-    displacement: '149 cc',
-    hp: '11.5 HP @ 8500 RPM',
-    torque: '10.0 Nm @ 7500 RPM',
-    transmission: '5 Velocidades multidisco húmedo',
-    weight: '120 kg',
-    fuelCapacity: '12 Litros (Reserva: 2.0L)',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50 4T JASO MA2',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '90/90 - 18',
-    rearTirePressure: '32 PSI',
-    chainType: 'Paso 428H x 118 eslabones',
-    sparkPlug: 'NGK D8EA / Resistencia 0.7mm',
-    battery: '12V - 7Ah libre de mantenimiento',
-    brakesFront: 'Disco hidráulico 240mm',
-    brakesRear: 'Tambor mecánico con zapatas',
-    cooling: 'Enfriado por aire natural',
-    maintenanceIntervalOil: 'Cada 2,000 - 3,000 km',
+export const GENERATOR_SPECS_DB: Record<string, GeneratorSpecs> = {
+  'blue power generation-c125': {
+    engineBrand: 'Cummins 6BT5.9-G2 Turbocharged',
+    displacement: '5.9 Litros - 6 Cilindros en Línea',
+    powerKva: '125 kVA Standby (115 kVA Prime)',
+    powerKw: '100 kW Standby (92 kW Prime)',
+    voltage: '127/220V - 254/440V Trifásico',
+    frequency: '60 Hz',
+    rpm: '1800 RPM',
+    fuelType: 'Diésel Automotriz / Industrial',
+    fuelCapacity: '250 Litros (Autonomía aprox: 10-12 hrs a 75%)',
+    fuelConsumption: '22.5 L/h al 75% de carga',
+    oilCapacity: '16.4 Litros',
+    oilTypeRecommended: '15W-40 API CK-4 / CJ-4 Heavy Duty Diesel',
+    coolantCapacity: '24.5 Litros (Mezcla 50/50)',
+    battery: '24V (2x 12V 100Ah en serie)',
+    alternator: 'Stamford UCI274D Brushless con AVR',
+    controlPanel: 'Deep Sea DSE6120 MKII con transferencia automática ATS',
+    maintenanceIntervalOil: 'Cada 200 - 250 Horas de Operación',
+    maintenanceIntervalFilters: 'Cada 250 Horas (Aceite, Combustible y Trampa)',
+    soundLevel: '68 dB(A) a 7 metros en cabina acústica',
   },
-  'empire keeway-horse 150rl': {
-    engineType: 'Monocilíndrico 4T con balanceador anti-vibración',
-    displacement: '149.2 cc',
-    hp: '11.8 HP @ 8200 RPM',
-    torque: '10.5 Nm @ 7000 RPM',
-    transmission: '5 Velocidades',
-    weight: '122 kg',
-    fuelCapacity: '13 Litros',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50 o 15W-40 JASO MA2',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '3.00 - 18',
-    rearTirePressure: '32 PSI',
-    chainType: '428H Reforzada',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico',
-    brakesRear: 'Tambor',
-    cooling: 'Aire',
-    maintenanceIntervalOil: 'Cada 2,500 km',
+  'blue power generation-c75': {
+    engineBrand: 'Perkins / Cummins 4BTA3.9-G2',
+    displacement: '3.9 Litros - 4 Cilindros Turbo',
+    powerKva: '75 kVA Standby (68 kVA Prime)',
+    powerKw: '60 kW Standby (54 kW Prime)',
+    voltage: '127/220V Trifásico',
+    frequency: '60 Hz',
+    rpm: '1800 RPM',
+    fuelType: 'Diésel',
+    fuelCapacity: '180 Litros',
+    fuelConsumption: '14.2 L/h al 75% de carga',
+    oilCapacity: '11.0 Litros',
+    oilTypeRecommended: '15W-40 Heavy Duty Diesel',
+    coolantCapacity: '18.0 Litros',
+    battery: '12V 100Ah libre de mantenimiento',
+    alternator: 'Stamford Brushless clase H',
+    controlPanel: 'ComAp InteliLite / DSE',
+    maintenanceIntervalOil: 'Cada 200 Horas de Operación',
+    maintenanceIntervalFilters: 'Cada 200 Horas',
+    soundLevel: '65 dB(A) a 7 metros',
   },
-  'empire keeway-rk 250': {
-    engineType: 'Bicilíndrico en paralelo 4T, SOHC 4 válvulas',
-    displacement: '249 cc',
-    hp: '18.0 HP @ 8500 RPM',
-    torque: '16.5 Nm @ 6000 RPM',
-    transmission: '6 Velocidades retorno',
-    weight: '160 kg',
-    fuelCapacity: '16 Litros',
-    oilCapacity: '1.4 Litros (con filtro)',
-    oilTypeRecommended: 'Semi-Sintético 15W-40 o 10W-40',
-    frontTireSize: '100/80 - 17',
-    frontTirePressure: '30 PSI',
-    rearTireSize: '130/70 - 17',
-    rearTirePressure: '33 PSI',
-    chainType: '520 O-Ring x 108L',
-    sparkPlug: 'NGK CR8E (x2)',
-    battery: '12V 9Ah',
-    brakesFront: 'Doble disco lobulado 260mm',
-    brakesRear: 'Disco hidráulico 240mm',
-    cooling: 'Radiador de aceite asistido por aire',
-    maintenanceIntervalOil: 'Cada 3,000 km',
+  'caterpillar-de110e2': {
+    engineBrand: 'Cat C4.4 Inline 4-Stroke',
+    displacement: '4.4 Litros Turbo con Postenfriador',
+    powerKva: '110 kVA',
+    powerKw: '88 kW',
+    voltage: '208V - 480V Ajustable',
+    frequency: '60 Hz',
+    rpm: '1800 RPM',
+    fuelType: 'Diésel',
+    fuelCapacity: '220 Litros',
+    fuelConsumption: '19.8 L/h al 75%',
+    oilCapacity: '14.0 Litros Cat DEO',
+    oilTypeRecommended: 'Cat DEO 15W-40',
+    coolantCapacity: '21.0 Litros Cat ELC',
+    battery: '12V 120Ah',
+    alternator: 'Cat R-Series',
+    controlPanel: 'EMCP 4.1 Digital',
+    maintenanceIntervalOil: 'Cada 250 Horas de Operación',
+    maintenanceIntervalFilters: 'Cada 250 Horas',
   },
-  'empire keeway-xpress 150': {
-    engineType: 'Monocilíndrico 4T, varillero económico',
-    displacement: '149 cc',
-    hp: '11.0 HP @ 8000 RPM',
-    torque: '9.8 Nm @ 7000 RPM',
-    transmission: '5 Velocidades',
-    weight: '112 kg',
-    fuelCapacity: '10 Litros',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50 Mineral',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '3.00 - 18',
-    rearTirePressure: '30 PSI',
-    chainType: '428H',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 6.5Ah',
-    brakesFront: 'Tambor mecánico',
-    brakesRear: 'Tambor mecánico',
-    cooling: 'Aire',
-    maintenanceIntervalOil: 'Cada 2,000 km',
-  },
-  'bera-sbr 150cc': {
-    engineType: 'Monocilíndrico 4T con tecnología balanceada',
-    displacement: '150 cc',
-    hp: '12.0 HP @ 8500 RPM',
-    torque: '11.0 Nm @ 7500 RPM',
-    transmission: '5 Velocidades',
-    weight: '118 kg',
-    fuelCapacity: '12.5 Litros',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50 4T JASO MA2',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '90/90 - 18',
-    rearTirePressure: '32 PSI',
-    chainType: '428H x 120L',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico con cáliper de doble pistón',
-    brakesRear: 'Tambor mecánico',
-    cooling: 'Aire forzado',
-    maintenanceIntervalOil: 'Cada 2,000 km',
-  },
-  'bera-kavak 150cc': {
-    engineType: 'Monocilíndrico 4T, diseño utilitario reforzado',
-    displacement: '150 cc',
-    hp: '12.0 HP @ 8000 RPM',
-    torque: '10.8 Nm @ 7000 RPM',
-    transmission: '5 Velocidades',
-    weight: '115 kg',
-    fuelCapacity: '11 Litros',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50 Mineral / Semi',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '3.00 - 18',
-    rearTirePressure: '32 PSI',
-    chainType: '428H',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico',
-    brakesRear: 'Tambor mecánico',
-    cooling: 'Aire',
-    maintenanceIntervalOil: 'Cada 2,000 km',
-  },
-  'bera-gbr 200cc': {
-    engineType: 'Monocilíndrico 4T, 200cc con eje balanceador',
-    displacement: '198 cc',
-    hp: '14.5 HP @ 8000 RPM',
-    torque: '14.0 Nm @ 6500 RPM',
-    transmission: '6 Velocidades retorno',
-    weight: '135 kg',
-    fuelCapacity: '14 Litros',
-    oilCapacity: '1.2 Litros',
-    oilTypeRecommended: 'Semi-Sintético 15W-40 / 20W-50',
-    frontTireSize: '90/90 - 17',
-    frontTirePressure: '29 PSI',
-    rearTireSize: '120/80 - 17',
-    rearTirePressure: '33 PSI',
-    chainType: '520 x 106L',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 9Ah',
-    brakesFront: 'Disco hidráulico ventilado',
-    brakesRear: 'Disco hidráulico mono-pistón',
-    cooling: 'Radiador de aceite y aletas de aire',
-    maintenanceIntervalOil: 'Cada 3,000 km',
-  },
-  'bera-super dt 250cc': {
-    engineType: 'Monocilíndrico 4T, refrigeración dual aire/aceite',
-    displacement: '249 cc',
-    hp: '19.0 HP @ 7500 RPM',
-    torque: '18.5 Nm @ 6000 RPM',
-    transmission: '5 Velocidades de alto torque',
-    weight: '138 kg',
-    fuelCapacity: '13 Litros',
-    oilCapacity: '1.3 Litros',
-    oilTypeRecommended: 'Semi-Sintético 15W-50',
-    frontTireSize: '80/100 - 21 (Enduro)',
-    frontTirePressure: '25 PSI',
-    rearTireSize: '110/90 - 18 (Enduro)',
-    rearTirePressure: '28 PSI',
-    chainType: '520 O-Ring',
-    sparkPlug: 'NGK DPR8EA-9',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico wave 260mm',
-    brakesRear: 'Disco hidráulico 220mm',
-    cooling: 'Radiador de aceite con deflector',
-    maintenanceIntervalOil: 'Cada 2,500 km',
-  },
-  'escuda-em 200': {
-    engineType: 'Monocilíndrico 4T con contrapeso anti-vibración',
-    displacement: '198 cc',
-    hp: '14.2 HP @ 8000 RPM',
-    torque: '13.8 Nm @ 6500 RPM',
-    transmission: '5 Velocidades',
-    weight: '128 kg',
-    fuelCapacity: '13 Litros',
-    oilCapacity: '1.1 Litros',
-    oilTypeRecommended: '20W-50 JASO MA2',
-    frontTireSize: '90/90 - 17',
-    frontTirePressure: '29 PSI',
-    rearTireSize: '110/80 - 17',
-    rearTirePressure: '32 PSI',
-    chainType: '428H Reforzada',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico',
-    brakesRear: 'Disco hidráulico',
-    cooling: 'Aire',
-    maintenanceIntervalOil: 'Cada 2,500 km',
-  },
-  'escuda-alexa 180 cc.': {
-    engineType: 'Monocilíndrico 4T urbano ágil',
-    displacement: '175 cc',
-    hp: '13.0 HP @ 8000 RPM',
-    torque: '12.5 Nm @ 6800 RPM',
-    transmission: '5 Velocidades',
-    weight: '122 kg',
-    fuelCapacity: '12 Litros',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '90/90 - 18',
-    rearTirePressure: '32 PSI',
-    chainType: '428H',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico',
-    brakesRear: 'Tambor',
-    cooling: 'Aire',
-    maintenanceIntervalOil: 'Cada 2,500 km',
-  },
-  'forza-forza sf501 - 250cc': {
-    engineType: 'Monocilíndrico 4T, árbol de levas a la cabeza (OHC)',
-    displacement: '249 cc',
-    hp: '18.5 HP @ 8500 RPM',
-    torque: '17.2 Nm @ 6500 RPM',
-    transmission: '6 Velocidades',
-    weight: '148 kg',
-    fuelCapacity: '14.5 Litros',
-    oilCapacity: '1.3 Litros',
-    oilTypeRecommended: 'Semi-Sintético 10W-40 / 15W-50',
-    frontTireSize: '110/70 - 17',
-    frontTirePressure: '30 PSI',
-    rearTireSize: '140/70 - 17',
-    rearTirePressure: '33 PSI',
-    chainType: '520H',
-    sparkPlug: 'NGK CR8E',
-    battery: '12V 9Ah',
-    brakesFront: 'Disco hidráulico doble pistón 280mm',
-    brakesRear: 'Disco hidráulico 240mm',
-    cooling: 'Radiador de aceite',
-    maintenanceIntervalOil: 'Cada 3,000 km',
-  },
-  'kadi-kadi lovis 150': {
-    engineType: 'Monocilíndrico 4T, tecnología de bajo consumo',
-    displacement: '149 cc',
-    hp: '11.2 HP @ 8000 RPM',
-    torque: '10.2 Nm @ 7000 RPM',
-    transmission: '5 Velocidades',
-    weight: '116 kg',
-    fuelCapacity: '11.5 Litros',
-    oilCapacity: '1.0 Litro',
-    oilTypeRecommended: '20W-50 Mineral',
-    frontTireSize: '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: '3.00 - 18',
-    rearTirePressure: '31 PSI',
-    chainType: '428H',
-    sparkPlug: 'NGK D8EA',
-    battery: '12V 7Ah',
-    brakesFront: 'Disco hidráulico',
-    brakesRear: 'Tambor mecánico',
-    cooling: 'Aire',
-    maintenanceIntervalOil: 'Cada 2,000 km',
-  },
-  'chevrolet-optra 2011': {
-    engineType: '4 Cilindros en línea, 1.8L DOHC 16 Válvulas E-TEC II / D-TEC MPFI',
-    displacement: '1.799 cc (1.8L)',
-    hp: '121 HP (89 kW) @ 5.800 RPM',
-    torque: '165 Nm (16.8 kg-m) @ 4.000 RPM',
-    transmission: 'Manual 5 velocidades / Automática 4 velocidades con Hold Mode',
-    weight: '1.250 kg (Peso en vacío)',
-    fuelCapacity: '60 Litros (15.8 galones) - Gasolina 91/95 Octanos',
-    oilCapacity: '4.0 Litros (con filtro)',
-    oilTypeRecommended: '10W-30 / 15W-40 Semi-Sintético o 5W-30 Sintético API SN/SP',
-    coolantCapacity: '7.0 Litros (Dex-Cool 50/50)',
-    frontTireSize: '195/55 R15',
-    frontTirePressure: '30 - 32 PSI',
-    rearTireSize: '195/55 R15',
-    rearTirePressure: '30 - 32 PSI',
-    timingBeltType: 'Correa DOHC 16V (162 dientes) - Motor interferencia',
-    sparkPlug: 'NGK BKR6E-11 / Champion RC9YC4 (Luz: 1.1 mm)',
-    battery: '12V 60Ah - 550 CCA (Borne invertido)',
-    brakesFront: 'Discos ventilados 256 mm con cáliper flotante',
-    brakesRear: 'Discos sólidos 258 mm con tambor interno de parqueo (ABS + EBD)',
-    cooling: 'Líquido presurizado, electroventilador doble y radiador aluminio',
-    maintenanceIntervalOil: 'Cada 5.000 km (Semi-sintético) o 7.500 km (Sintético)',
-    maintenanceIntervalTimingBelt: 'Cada 40.000 - 50.000 km (Cambio Crítico)',
-    suspensionFront: 'Independiente tipo McPherson con barra estabilizadora',
-    suspensionRear: 'Independiente Dual-Link multibrazo con barra estabilizadora',
-    dimensions: 'Largo: 4.520 mm | Ancho: 1.725 mm | Alto: 1.445 mm | Batalla: 2.600 mm',
-    trunkCapacity: '405 Litros',
-    equipment: 'Chevystar Platinum con pantalla 4.3" y GPS, Climatizador digital, Doble Airbag, Sunroof',
-  },
-  'chevrolet-optra advance 2011': {
-    engineType: '4 Cilindros en línea, 1.8L DOHC 16 Válvulas E-TEC II / D-TEC MPFI',
-    displacement: '1.799 cc (1.8L)',
-    hp: '121 HP (89 kW) @ 5.800 RPM',
-    torque: '165 Nm (16.8 kg-m) @ 4.000 RPM',
-    transmission: 'Manual 5 velocidades / Automática 4 velocidades con Hold Mode',
-    weight: '1.250 kg (Peso en vacío)',
-    fuelCapacity: '60 Litros (15.8 galones) - Gasolina 91/95 Octanos',
-    oilCapacity: '4.0 Litros (con filtro)',
-    oilTypeRecommended: '10W-30 / 15W-40 Semi-Sintético o 5W-30 Sintético API SN/SP',
-    coolantCapacity: '7.0 Litros (Dex-Cool 50/50)',
-    frontTireSize: '195/55 R15',
-    frontTirePressure: '30 - 32 PSI',
-    rearTireSize: '195/55 R15',
-    rearTirePressure: '30 - 32 PSI',
-    timingBeltType: 'Correa DOHC 16V (162 dientes) - Motor interferencia',
-    sparkPlug: 'NGK BKR6E-11 / Champion RC9YC4 (Luz: 1.1 mm)',
-    battery: '12V 60Ah - 550 CCA (Borne invertido)',
-    brakesFront: 'Discos ventilados 256 mm con cáliper flotante',
-    brakesRear: 'Discos sólidos 258 mm con tambor interno de parqueo (ABS + EBD)',
-    cooling: 'Líquido presurizado, electroventilador doble y radiador aluminio',
-    maintenanceIntervalOil: 'Cada 5.000 km (Semi-sintético) o 7.500 km (Sintético)',
-    maintenanceIntervalTimingBelt: 'Cada 40.000 - 50.000 km (Cambio Crítico)',
-    suspensionFront: 'Independiente tipo McPherson con barra estabilizadora',
-    suspensionRear: 'Independiente Dual-Link multibrazo con barra estabilizadora',
-    dimensions: 'Largo: 4.520 mm | Ancho: 1.725 mm | Alto: 1.445 mm | Batalla: 2.600 mm',
-    trunkCapacity: '405 Litros',
-    equipment: 'Chevystar Platinum con pantalla 4.3" y GPS, Climatizador digital, Doble Airbag, Sunroof',
-  },
-  'chevrolet-optra': {
-    engineType: '4 Cilindros en línea, 1.8L DOHC 16 Válvulas E-TEC II / D-TEC MPFI',
-    displacement: '1.799 cc (1.8L)',
-    hp: '121 HP (89 kW) @ 5.800 RPM',
-    torque: '165 Nm (16.8 kg-m) @ 4.000 RPM',
-    transmission: 'Manual 5 velocidades / Automática 4 velocidades con Hold Mode',
-    weight: '1.250 kg (Peso en vacío)',
-    fuelCapacity: '60 Litros (15.8 galones) - Gasolina 91/95 Octanos',
-    oilCapacity: '4.0 Litros (con filtro)',
-    oilTypeRecommended: '10W-30 / 15W-40 Semi-Sintético o 5W-30 Sintético API SN/SP',
-    coolantCapacity: '7.0 Litros (Dex-Cool 50/50)',
-    frontTireSize: '195/55 R15',
-    frontTirePressure: '30 - 32 PSI',
-    rearTireSize: '195/55 R15',
-    rearTirePressure: '30 - 32 PSI',
-    timingBeltType: 'Correa DOHC 16V (162 dientes) - Motor interferencia',
-    sparkPlug: 'NGK BKR6E-11 / Champion RC9YC4 (Luz: 1.1 mm)',
-    battery: '12V 60Ah - 550 CCA (Borne invertido)',
-    brakesFront: 'Discos ventilados 256 mm con cáliper flotante',
-    brakesRear: 'Discos sólidos 258 mm con tambor interno de parqueo (ABS + EBD)',
-    cooling: 'Líquido presurizado, electroventilador doble y radiador aluminio',
-    maintenanceIntervalOil: 'Cada 5.000 km (Semi-sintético) o 7.500 km (Sintético)',
-    maintenanceIntervalTimingBelt: 'Cada 40.000 - 50.000 km (Cambio Crítico)',
-    suspensionFront: 'Independiente tipo McPherson con barra estabilizadora',
-    suspensionRear: 'Independiente Dual-Link multibrazo con barra estabilizadora',
-    dimensions: 'Largo: 4.520 mm | Ancho: 1.725 mm | Alto: 1.445 mm | Batalla: 2.600 mm',
-    trunkCapacity: '405 Litros',
-    equipment: 'Chevystar Platinum con pantalla 4.3" y GPS, Climatizador digital, Doble Airbag, Sunroof',
-  },
-  'toyota-samurai fj60 1982': {
-    engineType: 'Toyota 2F, 6 Cilindros en línea, OHV a gasolina, 12 válvulas',
-    displacement: '4.230 cc (4.2 Litros)',
-    hp: '135 HP @ 3.600 RPM',
-    torque: '285 Nm (210 lb-pie) @ 1.800 RPM',
-    transmission: 'Manual 4 velocidades sincrónica (caja H41/H42 con reversa)',
-    weight: '2.040 kg (Peso en vacío) | PBT: 2.630 kg',
-    fuelCapacity: '90 Litros (aprox. 23.8 galones) - Carburador doble garganta',
-    oilCapacity: '7.8 Litros (con filtro)',
-    oilTypeRecommended: '20W-50 / 15W-40 Mineral para motor 2F pesado',
-    coolantCapacity: '14.5 Litros (Radiador de latón/cobre con vaso de expansión)',
-    frontTireSize: '235/75 R15 o 31x10.50 R15 (Rines 15" 6x139.7)',
-    frontTirePressure: '30 - 32 PSI',
-    rearTireSize: '235/75 R15 o 31x10.50 R15',
-    rearTirePressure: '32 - 35 PSI',
-    timingBeltType: 'Distribución por engranajes directos (Gear-driven, sin correa)',
-    sparkPlug: 'NGK BPR5EY / Denso W16EX-U (Luz: 0.8 mm)',
-    battery: '12V 75Ah - 700 CCA',
-    brakesFront: 'Discos ventilados asistidos por vacío con cáliper flotante',
-    brakesRear: 'Tambores hidráulicos de servicio pesado con auto-ajuste',
-    cooling: 'Líquido presurizado con fan clutch de acople viscoso',
-    maintenanceIntervalOil: 'Cada 5.000 km',
-    maintenanceIntervalTimingBelt: 'Engranajes directos - Libre de mantenimiento',
-    suspensionFront: 'Eje rígido con ballestas semi-elípticas y barra estabilizadora',
-    suspensionRear: 'Eje rígido con ballestas semi-elípticas reforzadas',
-    dimensions: 'Largo: 4.675 mm | Ancho: 1.800 mm | Alto: 1.750 mm | Batalla: 2.730 mm',
-    trunkCapacity: '1.200 Litros (ampliable con asientos abatibles)',
-    equipment: 'Tracción 4x4 con transfer de 2 velocidades (2H/4H/N/4L), cubos manuales Aisin/Warn, Dirección hidráulica, A/C, 5 puertas',
-  },
-  'toyota-samurai 1982': {
-    engineType: 'Toyota 2F, 6 Cilindros en línea, OHV a gasolina, 12 válvulas',
-    displacement: '4.230 cc (4.2 Litros)',
-    hp: '135 HP @ 3.600 RPM',
-    torque: '285 Nm (210 lb-pie) @ 1.800 RPM',
-    transmission: 'Manual 4 velocidades sincrónica (caja H41/H42 con reversa)',
-    weight: '2.040 kg (Peso en vacío)',
-    fuelCapacity: '90 Litros - Carburador doble garganta',
-    oilCapacity: '7.8 Litros (con filtro)',
-    oilTypeRecommended: '20W-50 / 15W-40 Mineral para motor 2F pesado',
-    coolantCapacity: '14.5 Litros',
-    frontTireSize: '235/75 R15 o 31x10.50 R15',
-    frontTirePressure: '30 - 32 PSI',
-    rearTireSize: '235/75 R15 o 31x10.50 R15',
-    rearTirePressure: '32 - 35 PSI',
-    timingBeltType: 'Distribución por engranajes directos (Gear-driven, sin correa)',
-    sparkPlug: 'NGK BPR5EY / Denso W16EX-U',
-    battery: '12V 75Ah - 700 CCA',
-    brakesFront: 'Discos ventilados asistidos',
-    brakesRear: 'Tambores hidráulicos de servicio pesado',
-    cooling: 'Líquido presurizado con fan clutch',
-    maintenanceIntervalOil: 'Cada 5.000 km',
-    maintenanceIntervalTimingBelt: 'Engranajes directos - Libre de mantenimiento',
-    suspensionFront: 'Eje rígido con ballestas semi-elípticas',
-    suspensionRear: 'Eje rígido con ballestas semi-elípticas reforzadas',
-    dimensions: 'Largo: 4.675 mm | Ancho: 1.800 mm | Alto: 1.750 mm | Batalla: 2.730 mm',
-    trunkCapacity: '1.200 Litros',
-    equipment: 'Tracción 4x4 (2H/4H/N/4L), Dirección hidráulica, A/C, carrocería SUV 5 puertas',
-  },
-  'toyota-samurai': {
-    engineType: 'Toyota 2F, 6 Cilindros en línea, OHV a gasolina, 12 válvulas',
-    displacement: '4.230 cc (4.2 Litros)',
-    hp: '135 HP @ 3.600 RPM',
-    torque: '285 Nm (210 lb-pie) @ 1.800 RPM',
-    transmission: 'Manual 4 velocidades sincrónica (caja H41/H42 con reversa)',
-    weight: '2.040 kg',
-    fuelCapacity: '90 Litros - Carburador doble garganta',
-    oilCapacity: '7.8 Litros',
-    oilTypeRecommended: '20W-50 / 15W-40 Mineral',
-    coolantCapacity: '14.5 Litros',
-    frontTireSize: '235/75 R15 o 31x10.50 R15',
-    frontTirePressure: '30 - 32 PSI',
-    rearTireSize: '235/75 R15 o 31x10.50 R15',
-    rearTirePressure: '32 - 35 PSI',
-    timingBeltType: 'Distribución por engranajes directos (Gear-driven)',
-    sparkPlug: 'NGK BPR5EY',
-    battery: '12V 75Ah',
-    brakesFront: 'Discos ventilados asistidos',
-    brakesRear: 'Tambores hidráulicos',
-    cooling: 'Líquido presurizado con fan clutch',
-    maintenanceIntervalOil: 'Cada 5.000 km',
-    maintenanceIntervalTimingBelt: 'Engranajes directos - Libre de mantenimiento',
-    suspensionFront: 'Eje rígido con ballestas semi-elípticas',
-    suspensionRear: 'Eje rígido con ballestas semi-elípticas',
-    dimensions: 'Largo: 4.675 mm | Ancho: 1.800 mm | Alto: 1.750 mm',
-    trunkCapacity: '1.200 Litros',
-    equipment: 'Tracción 4x4 con reductora (2H/4H/N/4L), Dirección hidráulica, A/C',
+  'generac-guardian-22kw': {
+    engineBrand: 'Generac G-Force 999cc V-Twin',
+    displacement: '999 cc',
+    powerKva: '27.5 kVA Gas LP / 24 kVA Gas Natural',
+    powerKw: '22 kW Gas LP / 19.5 kW Gas Natural',
+    voltage: '120/240V Monofásico',
+    frequency: '60 Hz',
+    rpm: '3600 RPM',
+    fuelType: 'Gas Liquado de Petróleo (LP) o Gas Natural',
+    fuelCapacity: 'Alimentación continua por tubería',
+    oilCapacity: '1.9 Litros',
+    oilTypeRecommended: '5W-30 Full Sintético',
+    coolantCapacity: 'Refrigerado por aire forzado',
+    battery: '12V Grupo 26R AGM',
+    alternator: 'Generac con regulación digital',
+    controlPanel: 'Evolution Digital Controller con Wi-Fi',
+    maintenanceIntervalOil: 'Cada 200 Horas o Anual',
+    maintenanceIntervalFilters: 'Cada 200 Horas',
   },
 };
 
-export const getMotoSpecs = (brand: string, model: string): MotoSpecs => {
-  if (!brand && !model) {
-    return generateFallbackSpecs('150 cc');
-  }
+export const MOTO_SPECS_DB = GENERATOR_SPECS_DB;
 
-  const cleanBrand = (brand || '').trim().toLowerCase();
-  const cleanModel = (model || '').trim().toLowerCase();
-  const exactKey = `${cleanBrand}-${cleanModel}`;
-
-  if (MOTO_SPECS_DB[exactKey]) {
-    return MOTO_SPECS_DB[exactKey];
-  }
-
-  // Detect Toyota Samurai / Land Cruiser FJ60
-  if (
-    cleanBrand.includes('toyota') ||
-    cleanModel.includes('samurai') ||
-    cleanModel.includes('samuray') ||
-    cleanModel.includes('fj60') ||
-    cleanModel.includes('land cruiser')
-  ) {
-    return MOTO_SPECS_DB['toyota-samurai fj60 1982'];
-  }
-
-  // Detect Optra or Chevrolet car
-  if (cleanModel.includes('optra') || (cleanBrand.includes('chevrolet') && cleanModel.includes('optra'))) {
-    return MOTO_SPECS_DB['chevrolet-optra 2011'];
-  }
-
-  // Find approximate match
-  for (const k of Object.keys(MOTO_SPECS_DB)) {
-    if (k.includes(cleanModel) || (cleanModel && cleanModel.includes(k.split('-')[1]))) {
-      return MOTO_SPECS_DB[k];
-    }
-  }
-
-
-  // Derive specs automatically based on model name / displacement
-  let displacementHint = '150 cc';
-  if (cleanModel.includes('250')) displacementHint = '250 cc';
-  else if (cleanModel.includes('200')) displacementHint = '200 cc';
-  else if (cleanModel.includes('180')) displacementHint = '180 cc';
-  else if (cleanModel.includes('125')) displacementHint = '125 cc';
-  else if (cleanModel.includes('300')) displacementHint = '300 cc';
-
-  return generateFallbackSpecs(displacementHint);
-};
-
-function generateFallbackSpecs(disp: string): MotoSpecs {
-  const is250 = disp.includes('250') || disp.includes('300');
-  const is200 = disp.includes('200') || disp.includes('180');
-
+export const getGeneratorSpecs = (brand?: string, model?: string): GeneratorSpecs | null => {
+  if (!brand || !model) return null;
+  const key = `${brand.trim().toLowerCase()}-${model.trim().toLowerCase()}`;
+  if (GENERATOR_SPECS_DB[key]) return GENERATOR_SPECS_DB[key];
+  
+  const found = Object.keys(GENERATOR_SPECS_DB).find(k => k.includes(model.trim().toLowerCase()));
+  if (found) return GENERATOR_SPECS_DB[found];
+  
   return {
-    engineType: `Monocilíndrico 4 Tiempos (${disp})`,
-    displacement: disp,
-    hp: is250 ? '18.5 HP @ 8000 RPM' : (is200 ? '14.0 HP @ 8000 RPM' : '11.5 HP @ 8200 RPM'),
-    torque: is250 ? '16.8 Nm @ 6500 RPM' : (is200 ? '13.2 Nm @ 6500 RPM' : '10.2 Nm @ 7000 RPM'),
-    transmission: is250 ? '6 Velocidades' : '5 Velocidades sincronizadas',
-    weight: is250 ? '145 kg' : (is200 ? '130 kg' : '118 kg'),
-    fuelCapacity: is250 ? '14 Litros' : '12 Litros',
-    oilCapacity: is250 ? '1.3 Litros' : (is200 ? '1.1 Litros' : '1.0 Litro'),
-    oilTypeRecommended: is250 ? '15W-40 o 10W-40 Semi-Sintético' : '20W-50 4T JASO MA2',
-    frontTireSize: is250 ? '90/90 - 17' : '2.75 - 18',
-    frontTirePressure: '28 PSI',
-    rearTireSize: is250 ? '130/70 - 17' : '90/90 - 18',
-    rearTirePressure: '32 PSI',
-    chainType: is250 ? '520 O-Ring' : '428H Reforzada',
-    sparkPlug: is250 ? 'NGK CR8E' : 'NGK D8EA',
-    battery: is250 ? '12V 9Ah' : '12V 7Ah',
-    brakesFront: 'Disco hidráulico ventilado',
-    brakesRear: is250 ? 'Disco hidráulico' : 'Tambor mecánico',
-    cooling: is250 ? 'Radiador de aceite y aire' : 'Aire forzado',
-    maintenanceIntervalOil: is250 ? 'Cada 3,000 km' : 'Cada 2,000 km',
+    engineBrand: `${brand} Industrial Engine`,
+    powerKva: '100 kVA',
+    powerKw: '80 kW',
+    rpm: '1800 RPM',
+    fuelType: 'Diésel Industrial',
+    oilTypeRecommended: '15W-40 Heavy Duty Diesel',
+    oilCapacity: '14.0 Litros',
+    battery: '12V / 24V Heavy Duty',
+    maintenanceIntervalOil: 'Cada 200 Horas',
+    maintenanceIntervalFilters: 'Cada 200 Horas',
   };
-}
+};
+
+export const getMotoSpecs = getGeneratorSpecs;

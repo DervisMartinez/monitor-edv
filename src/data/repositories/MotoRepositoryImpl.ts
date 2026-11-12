@@ -1,25 +1,44 @@
-import { Moto } from '../../domain/entities/Moto';
+import { Generator } from '../../domain/entities/Generator';
 import { MotoRepository } from '../../domain/repositories/MotoRepository';
 
-// Dummy data for testing the architecture
-const MOCK_MOTOS: Moto[] = [
-  { id: '1', brand: 'Yamaha', model: 'MT-07', year: 2023, currentOdometer: 0 },
-  { id: '2', brand: 'Kawasaki', model: 'Ninja 400', year: 2022, currentOdometer: 0 },
-  { id: '3', brand: 'Honda', model: 'CBR600RR', year: 2024, currentOdometer: 0 },
+const MOCK_GENERATORS: Generator[] = [
+  { 
+    id: '1', 
+    name: 'Planta Principal Sede Central', 
+    brand: 'Blue Power Generation', 
+    model: 'C125', 
+    capacityKva: 125, 
+    fuelType: 'diesel', 
+    currentHours: 1245.5, 
+    serviceIntervalHours: 200, 
+    lastServiceHours: 1200.0, 
+    status: 'standby' 
+  },
+  { 
+    id: '2', 
+    name: 'Planta DataCenter', 
+    brand: 'Blue Power Generation', 
+    model: 'C75', 
+    capacityKva: 75, 
+    fuelType: 'diesel', 
+    currentHours: 540.0, 
+    serviceIntervalHours: 200, 
+    lastServiceHours: 400.0, 
+    status: 'standby' 
+  },
 ];
 
 export class MotoRepositoryImpl implements MotoRepository {
-  async getMotos(): Promise<Moto[]> {
-    // Simulate network delay
+  async getMotos(): Promise<Generator[]> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(MOCK_MOTOS);
-      }, 1000);
+        resolve(MOCK_GENERATORS);
+      }, 500);
     });
   }
 
-  async getMotoById(id: string): Promise<Moto | null> {
-    const moto = MOCK_MOTOS.find(m => m.id === id);
-    return moto || null;
+  async getMotoById(id: string): Promise<Generator | null> {
+    const gen = MOCK_GENERATORS.find(m => m.id === id);
+    return gen || null;
   }
 }

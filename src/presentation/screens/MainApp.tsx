@@ -1,18 +1,16 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
   TouchableOpacity, 
   StyleSheet, 
-  KeyboardAvoidingView, 
-  Platform, 
   Animated, 
-  Dimensions,
   Modal,
   TextInput,
   Alert,
   ScrollView,
-  useWindowDimensions
+  useWindowDimensions,
+  Platform
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -21,37 +19,57 @@ import { DashboardTab } from './tabs/DashboardTab';
 import { ProfileTab } from './tabs/ProfileTab';
 import { HistoryTab } from './tabs/HistoryTab';
 import { ServicesTab } from './tabs/ServicesTab';
-import { WalletTab } from './tabs/WalletTab';
+import { OutagesTab } from './tabs/OutagesTab';
 import { SpecsTab } from './tabs/SpecsTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-
-// Web Components inspired by Yamaha reference design
-import { WebHeader } from '../components/web/WebHeader';
-import { WebSidebarDock } from '../components/web/WebSidebarDock';
-import { WebVehicleHero } from '../components/web/WebVehicleHero';
-import { WebTelemetrySection } from '../components/web/WebTelemetrySection';
-
-// Shared Modals
+import { isWebPlatform } from '../utils/platformMode';
+import { AdminDashboard } from '../components/web/AdminDashboard';
 import { TechnicalSheetModal } from '../components/TechnicalSheetModal';
 import { VehicleStatsAndCalendarModal } from '../components/VehicleStatsAndCalendarModal';
-import { EmergencyCrashModal } from '../components/EmergencyCrashModal';
-import { MotoInspectionModal } from '../components/MotoInspectionModal';
-import { VehicleReportModal } from '../components/VehicleReportModal';
-import { getMotoSpecs } from '../../data/specs';
-import { isWebPlatform } from '../utils/platformMode';
-import { ComponentType } from '../../constants/telemetry';
 
 export const MainApp = () => {
-  const { colors, mode } = useTheme();
-  const { myMoto, updateMoto, addRecord } = useMyMoto();
-  const [activeTab, setActiveTab] = useState<'moto' | 'specs' | 'services' | 'wallet' | 'history' | 'profile'>('moto');
+  const { colors, mode, isDark } = useTheme();
+  const { 
+    activeGenerator, 
+    updateHorometer, 
+    startOutage, 
+    endOutage, 
+    activeOutage,
+    addService,
+    currentUser 
+  } = useMyMoto();
+
+  const [activeTab, setActiveTab] = useState<'moto' | 'outages' | 'services' | 'history' | 'profile'>('moto');
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(['moto']));
-  const [servicesInitialComp, setServicesInitialComp] = useState<ComponentType | undefined>(undefined);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
 
-  const handleSelectTab = (tab: 'moto' | 'specs' | 'services' | 'wallet' | 'history' | 'profile') => {
+  // If on Web platform, render the Superuser Admin Dashboard directly!
+  const isWeb = isWebPlatform();
+  if (isWeb) {
+    return <AdminDashboard />;
+  }
+
+  // Quick Action Sheet state for Mobile Central [+]
+  const [quickActionVisible, setQuickActionVisible] = useState(false);
+  const [quickHoroVisible, setQuickHoroVisible] = useState(false);
+  const [quickServiceVisible, setQuickServiceVisible] = useState(false);
+
+  // Quick Horometer Inputs
+  const [newHoroInput, setNewHoroInput] = useState('');
+  const [horoNotesInput, setHoroNotesInput] = useState('');
+
+  // Quick Service Inputs (NO COST)
+  const [serviceTypeInput, setServiceTypeInput] = useState<'oil' | 'oil_filter' | 'fuel_filter' | 'air_filter' | 'coolant' | 'battery'>('oil');
+  const [serviceHoroInput, setServiceHoroInput] = useState('');
+  const [serviceNotesInput, setServiceNotesInput] = useState('');
+
+  // Modals
+  const [specsModalVisible, setSpecsModalVisible] = useState(false);
+  const [calModalVisible, setCalModalVisible] = useState(false);
+
+  const handleSelectTab = (tab: 'moto' | 'outages' | 'services' | 'history' | 'profile') => {
     setVisitedTabs((prev) => {
       if (prev.has(tab)) return prev;
       const next = new Set(prev);
@@ -59,35 +77,7 @@ export const MainApp = () => {
       return next;
     });
     setActiveTab(tab);
-    if (isWebPlatform()) {
-      desktopScrollRef.current?.scrollTo({ y: 0, animated: false });
-    }
   };
-
-  // Desktop threshold: 920px
-  const isDesktop = windowWidth >= 920;
-
-  // Quick Action Sheet state
-  const [quickActionVisible, setQuickActionVisible] = useState(false);
-  const [quickOdoVisible, setQuickOdoVisible] = useState(false);
-  const [quickFuelVisible, setQuickFuelVisible] = useState(false);
-  const [newOdoInput, setNewOdoInput] = useState('');
-  const [fuelLitersInput, setFuelLitersInput] = useState('');
-  const [fuelUsdInput, setFuelUsdInput] = useState('');
-
-  // Modals for Desktop & Mobile
-  const [specsModalVisible, setSpecsModalVisible] = useState(false);
-  const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [sosModalVisible, setSosModalVisible] = useState(false);
-  const [inspectionModalVisible, setInspectionModalVisible] = useState(false);
-  const [reportModalVisible, setReportModalVisible] = useState(false);
-
-  const desktopScrollRef = useRef<ScrollView>(null);
-
-  const specs = useMemo(() => {
-    if (!myMoto) return null;
-    return getMotoSpecs(myMoto.brand, myMoto.model);
-  }, [myMoto]);
 
   const F = {
     bold: 'Montserrat_700Bold',
@@ -97,731 +87,423 @@ export const MainApp = () => {
     extrabold: 'Montserrat_800ExtraBold',
   };
 
-  // 5 Main Tabs flanking the Central [+] Quick Add Button
   const tabs = [
-    { id: 'moto' as const, icon: 'engine', iconFamily: 'community' as const, label: 'Vehículo' },
-    { id: 'services' as const, icon: 'build', iconFamily: 'material' as const, label: 'Servicios' },
-    { id: 'history' as const, icon: 'receipt-long', iconFamily: 'material' as const, label: 'Historial' },
-    { id: 'wallet' as const, icon: 'account-balance-wallet', iconFamily: 'material' as const, label: 'Wallet' },
+    { id: 'moto' as const, icon: 'engine', iconFamily: 'community' as const, label: 'Planta' },
+    { id: 'outages' as const, icon: 'calendar-month', iconFamily: 'material' as const, label: 'Cortes' },
+    { id: 'services' as const, icon: 'build', iconFamily: 'material' as const, label: 'Servicio' },
+    { id: 'history' as const, icon: 'history', iconFamily: 'material' as const, label: 'Historial' },
     { id: 'profile' as const, icon: 'person', iconFamily: 'material' as const, label: 'Perfil' },
   ];
 
-  // Animated values for raised bubble effect (mobile)
-  const tabAnims = useRef(
-    [0, 1, 2, 3, 4].map(i => ({
-      scale: new Animated.Value(i === 0 ? 1.15 : 1),
-      translateY: new Animated.Value(i === 0 ? -8 : 0),
-    }))
-  );
-
-  const getTabAnim = (index: number) => {
-    if (!tabAnims.current[index]) {
-      tabAnims.current[index] = {
-        scale: new Animated.Value(index === 0 ? 1.15 : 1),
-        translateY: new Animated.Value(index === 0 ? -8 : 0),
-      };
-    }
-    return tabAnims.current[index];
-  };
-
-  const plusScale = useRef(new Animated.Value(1)).current;
-
-  const handleTabPress = (id: 'moto' | 'services' | 'wallet' | 'history' | 'profile', index: number) => {
-    handleSelectTab(id);
-
-    // Spring elevate the active tab and lower inactive tabs (mobile)
-    tabs.forEach((_, i) => {
-      const isTarget = i === index;
-      const anim = getTabAnim(i);
-      Animated.parallel([
-        Animated.spring(anim.scale, {
-          toValue: isTarget ? 1.18 : 1,
-          friction: 5,
-          tension: 100,
-          useNativeDriver: true,
-        }),
-        Animated.spring(anim.translateY, {
-          toValue: isTarget ? -8 : 0,
-          friction: 5,
-          tension: 90,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
-
-  const handlePlusPress = () => {
-    Animated.sequence([
-      Animated.timing(plusScale, { toValue: 0.88, duration: 80, useNativeDriver: true }),
-      Animated.spring(plusScale, { toValue: 1, friction: 4, tension: 120, useNativeDriver: true })
-    ]).start();
-
-    setQuickActionVisible(true);
-  };
-
-  const handleSaveQuickOdo = () => {
-    const odo = parseInt(newOdoInput);
-    if (!odo || !myMoto || odo <= myMoto.currentOdometer) {
-      alert('Ingresa un kilometraje mayor al actual.');
+  const handleSaveQuickHoro = async () => {
+    const val = parseFloat(newHoroInput);
+    if (isNaN(val) || val < 0) {
+      Alert.alert('Horómetro Inválido', 'Ingresa una cifra válida en horas.');
       return;
     }
-    updateMoto({ currentOdometer: odo });
-    setQuickOdoVisible(false);
-    setNewOdoInput('');
-    alert(`Odómetro actualizado a ${odo} km.`);
+    await updateHorometer(val, horoNotesInput);
+    setQuickHoroVisible(false);
+    setHoroNotesInput('');
+    Alert.alert('Horómetro Actualizado', `Se guardó la lectura de ${val.toFixed(1)} hrs.`);
   };
 
-  const handleSaveQuickFuel = () => {
-    const liters = parseFloat(fuelLitersInput);
-    const usd = parseFloat(fuelUsdInput);
-    if (!liters || !usd || !myMoto) {
-      alert('Ingresa litros y monto en USD válidos.');
-      return;
-    }
-    addRecord({
-      id: Math.random().toString(),
-      type: 'fuel',
-      date: new Date().toISOString(),
-      odometer: myMoto.currentOdometer,
-      costUSD: usd,
-      notes: `Carga de ${liters} Litros`
+  const handleSaveQuickService = async () => {
+    const h = parseFloat(serviceHoroInput) || activeGenerator?.currentHours || 0;
+    await addService({
+      generatorId: activeGenerator?.id || 'gen-blue-power-c125',
+      userId: currentUser?.id || 'user-001',
+      userEmail: currentUser?.email || 'operador@empresa.com',
+      serviceType: serviceTypeInput,
+      horometer: Number(h.toFixed(1)),
+      date: new Date().toISOString().split('T')[0],
+      performedBy: currentUser?.fullName || 'Operador',
+      notes: serviceNotesInput,
     });
-    setQuickFuelVisible(false);
-    setFuelLitersInput('');
-    setFuelUsdInput('');
-    alert('Carga de combustible registrada en tu historial.');
+    setQuickServiceVisible(false);
+    setServiceNotesInput('');
+    Alert.alert('Servicio Registrado', 'Mantenimiento preventivo guardado sin montos ni costos.');
   };
 
-  const scrollToTelemetry = () => {
-    desktopScrollRef.current?.scrollTo({ y: windowWidth < 900 ? 680 : 550, animated: true });
-  };
+  const barBg = isDark ? 'rgba(18,20,28,0.96)' : 'rgba(255,255,255,0.96)';
+  const borderHairline = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const isLargeViewport = windowWidth > 540;
 
-  const isDark = mode === 'dark';
-  const barBg = isDark ? 'rgba(18,18,20,0.96)' : 'rgba(255,255,255,0.96)';
-  const borderHairline = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-
-  // ==========================================
-  // RESPONSIVE WEB APPLICATION LAYOUT (DESKTOP, TABLET & MOBILE WEB)
-  // ==========================================
-  const isWeb = isWebPlatform();
-  if (isWeb) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.surface }}>
-        {/* RESPONSIVE WEB TOP HEADER (Adapts cleanly to desktop, tablet, and mobile browsers) */}
-        <WebHeader
-          activeTab={activeTab}
-          onSelectTab={handleSelectTab}
-          onOpenQuickOdo={() => setQuickOdoVisible(true)}
-          onOpenQuickFuel={() => setQuickFuelVisible(true)}
-          onOpenReport={() => setReportModalVisible(true)}
-        />
-
-        {/* DESKTOP SIDEBAR DOCK (VERTICAL SHORTCUTS) */}
-        <WebSidebarDock
-          onOpenQuickOdo={() => setQuickOdoVisible(true)}
-          onOpenQuickFuel={() => setQuickFuelVisible(true)}
-          onOpenSpecs={() => handleSelectTab('specs')}
-          onOpenStats={() => setStatsModalVisible(true)}
-        />
-
-        {/* WEB MAIN VIEW - TABS PERSIST IN MEMORY FOR INSTANT 0MS NAVIGATION */}
-        <ScrollView 
-          ref={desktopScrollRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ minHeight: '100%', paddingBottom: windowWidth < 768 ? 90 : 60 }}
-          showsVerticalScrollIndicator={true}
-        >
-          <View style={{ width: '100%', display: activeTab === 'moto' ? 'flex' : 'none' }}>
-            {/* VEHICLE SHOWCASE HERO */}
-            <WebVehicleHero
-              onOpenSpecs={() => handleSelectTab('specs')}
-              onOpenStats={() => setStatsModalVisible(true)}
-              onOpenQuickOdo={() => setQuickOdoVisible(true)}
-              onOpenQuickFuel={() => setQuickFuelVisible(true)}
-              onScrollToTelemetry={scrollToTelemetry}
-              onOpenInspection={() => setInspectionModalVisible(true)}
-              onOpenReport={() => setReportModalVisible(true)}
-              onOpenServicesTab={() => {
-                setServicesInitialComp('oil');
-                handleSelectTab('services');
-              }}
-            />
-
-            {/* TELEMETRY & WEAR GRID */}
-            <WebTelemetrySection
-              onOpenSpecs={() => handleSelectTab('specs')}
-              onOpenQuickOdo={() => setQuickOdoVisible(true)}
-              onOpenQuickFuel={() => setQuickFuelVisible(true)}
-              onOpenServicesTab={(comp?: string) => {
-                if (comp) {
-                  setServicesInitialComp(comp as ComponentType);
-                } else {
-                  setServicesInitialComp(undefined);
-                }
-                handleSelectTab('services');
-              }}
-            />
-          </View>
-
-          {visitedTabs.has('specs') && (
-            <View style={{ width: '100%', display: activeTab === 'specs' ? 'flex' : 'none' }}>
-              <SpecsTab onNavigateToServices={() => handleSelectTab('services')} />
-            </View>
-          )}
-
-          {visitedTabs.has('services') && (
-            <View style={[styles.desktopTabContainer, { display: activeTab === 'services' ? 'flex' : 'none', paddingHorizontal: windowWidth < 768 ? (windowWidth < 480 ? 10 : 16) : 32, paddingTop: windowWidth < 768 ? 14 : 24 }]}>
-              <ServicesTab initialComponent={servicesInitialComp} />
-            </View>
-          )}
-
-          {visitedTabs.has('history') && (
-            <View style={[styles.desktopTabContainer, { display: activeTab === 'history' ? 'flex' : 'none', paddingHorizontal: windowWidth < 768 ? (windowWidth < 480 ? 10 : 16) : 32, paddingTop: windowWidth < 768 ? 14 : 24 }]}>
-              <HistoryTab />
-            </View>
-          )}
-
-          {visitedTabs.has('wallet') && (
-            <View style={[styles.desktopTabContainer, { display: activeTab === 'wallet' ? 'flex' : 'none', paddingHorizontal: windowWidth < 768 ? (windowWidth < 480 ? 10 : 16) : 32, paddingTop: windowWidth < 768 ? 14 : 24 }]}>
-              <WalletTab />
-            </View>
-          )}
-
-          {visitedTabs.has('profile') && (
-            <View style={[styles.desktopTabContainer, { display: activeTab === 'profile' ? 'flex' : 'none', paddingHorizontal: windowWidth < 768 ? (windowWidth < 480 ? 10 : 16) : 32, paddingTop: windowWidth < 768 ? 14 : 24 }]}>
-              <ProfileTab onOpenReport={() => setReportModalVisible(true)} />
-            </View>
-          )}
-        </ScrollView>
-
-        {/* MODAL: FICHA TÉCNICA */}
-        <TechnicalSheetModal
-          visible={specsModalVisible}
-          onClose={() => setSpecsModalVisible(false)}
-          myMoto={myMoto}
-          specs={specs}
-        />
-
-        {/* MODAL: ESTADÍSTICAS Y CALENDARIO */}
-        <VehicleStatsAndCalendarModal
-          visible={statsModalVisible}
-          onClose={() => setStatsModalVisible(false)}
-        />
-
-        {/* MODAL: SOS CRASH EMERGENCY */}
-        <EmergencyCrashModal
-          visible={sosModalVisible}
-          onClose={() => setSosModalVisible(false)}
-          manualTrigger={true}
-        />
-
-        {/* MODAL: INSPECCIÓN INTERACTIVA 3D DE LA MOTO */}
-        <MotoInspectionModal
-          visible={inspectionModalVisible}
-          onClose={() => setInspectionModalVisible(false)}
-          onOpenQuickService={() => setActiveTab('services')}
-        />
-
-        {/* MODAL: REPORTE EJECUTIVO PDF */}
-        <VehicleReportModal
-          visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
-          myMoto={myMoto}
-          specs={specs}
-        />
-
-        {/* MODAL: ACTUALIZAR ODÓMETRO */}
-        <Modal visible={quickOdoVisible} transparent={true} animationType="fade">
-          <View style={styles.desktopModalBackdrop}>
-            <View style={[styles.dialogBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontFamily: F.extrabold, color: colors.onSurface, fontSize: 18 }}>
-                  Actualizar Odómetro
-                </Text>
-                <TouchableOpacity onPress={() => setQuickOdoVisible(false)}>
-                  <MaterialIcons name="close" size={20} color={colors.onSurfaceVariant} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12, marginBottom: 16 }}>
-                Odómetro actual: {myMoto?.currentOdometer || 0} km
-              </Text>
-
-              <TextInput 
-                value={newOdoInput}
-                onChangeText={setNewOdoInput}
-                placeholder={`Mayor a ${myMoto?.currentOdometer || 0} km`}
-                placeholderTextColor={colors.onSurfaceVariant}
-                keyboardType="numeric"
-                style={[styles.dialogInput, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]}
-              />
-
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
-                <TouchableOpacity onPress={() => setQuickOdoVisible(false)} style={[styles.dialogBtn, { borderColor: colors.outlineVariant, borderWidth: 0.5 }]}>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface }}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSaveQuickOdo} style={[styles.dialogBtn, { backgroundColor: '#4169E1' }]}>
-                  <Text style={{ fontFamily: F.bold, color: '#ffffff' }}>Guardar Odómetro</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* MODAL: CARGAR COMBUSTIBLE */}
-        <Modal visible={quickFuelVisible} transparent={true} animationType="fade">
-          <View style={styles.desktopModalBackdrop}>
-            <View style={[styles.dialogBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontFamily: F.extrabold, color: colors.onSurface, fontSize: 18 }}>
-                  Cargar Combustible
-                </Text>
-                <TouchableOpacity onPress={() => setQuickFuelVisible(false)}>
-                  <MaterialIcons name="close" size={20} color={colors.onSurfaceVariant} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12, marginBottom: 16 }}>
-                Registra los datos de tu tanqueo
-              </Text>
-
-              <Text style={{ fontFamily: F.bold, fontSize: 11, color: colors.onSurfaceVariant, marginBottom: 6 }}>LITROS CARGADOS:</Text>
-              <TextInput 
-                value={fuelLitersInput}
-                onChangeText={setFuelLitersInput}
-                placeholder="Ej. 10"
-                placeholderTextColor={colors.onSurfaceVariant}
-                keyboardType="numeric"
-                style={[styles.dialogInput, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold, marginBottom: 12 }]}
-              />
-
-              <Text style={{ fontFamily: F.bold, fontSize: 11, color: colors.onSurfaceVariant, marginBottom: 6 }}>COSTO EN USD ($):</Text>
-              <TextInput 
-                value={fuelUsdInput}
-                onChangeText={setFuelUsdInput}
-                placeholder="Ej. 5.00"
-                placeholderTextColor={colors.onSurfaceVariant}
-                keyboardType="numeric"
-                style={[styles.dialogInput, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]}
-              />
-
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
-                <TouchableOpacity onPress={() => setQuickFuelVisible(false)} style={[styles.dialogBtn, { borderColor: colors.outlineVariant, borderWidth: 0.5 }]}>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface }}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSaveQuickFuel} style={[styles.dialogBtn, { backgroundColor: '#00e3fd' }]}>
-                  <Text style={{ fontFamily: F.bold, color: '#111319' }}>Guardar Carga</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-      </View>
-    );
-  }
-
-  // ==========================================
-  // MOBILE LAYOUT (Current Touch Phone View)
-  // ==========================================
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ flex: 1, paddingBottom: 68 + insets.bottom }}>
+    <View style={[styles.rootWrapper, { backgroundColor: isDark ? '#0b0d14' : '#E2E8F0' }]}>
+      <View style={[
+        styles.appContainer,
+        {
+          backgroundColor: colors.surface,
+          maxWidth: isLargeViewport ? 480 : '100%',
+          borderLeftWidth: isLargeViewport ? 1 : 0,
+          borderRightWidth: isLargeViewport ? 1 : 0,
+          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          shadowOpacity: isLargeViewport ? 0.2 : 0,
+        }
+      ]}>
+
+        {/* MOBILE MAIN VIEW - TABS PERSIST IN MEMORY FOR INSTANT NAVIGATION */}
+        <View style={{ flex: 1 }}>
           <View style={{ flex: 1, display: activeTab === 'moto' ? 'flex' : 'none' }}>
-            <DashboardTab />
+            <DashboardTab onNavigateTab={handleSelectTab} />
           </View>
-          {visitedTabs.has('specs') && (
-            <View style={{ flex: 1, display: activeTab === 'specs' ? 'flex' : 'none' }}>
-              <SpecsTab onNavigateToServices={() => handleSelectTab('services')} />
+
+          {visitedTabs.has('outages') && (
+            <View style={{ flex: 1, display: activeTab === 'outages' ? 'flex' : 'none' }}>
+              <OutagesTab />
             </View>
           )}
+
           {visitedTabs.has('services') && (
             <View style={{ flex: 1, display: activeTab === 'services' ? 'flex' : 'none' }}>
-              <ServicesTab initialComponent={servicesInitialComp} />
+              <ServicesTab />
             </View>
           )}
+
           {visitedTabs.has('history') && (
             <View style={{ flex: 1, display: activeTab === 'history' ? 'flex' : 'none' }}>
               <HistoryTab />
             </View>
           )}
-          {visitedTabs.has('wallet') && (
-            <View style={{ flex: 1, display: activeTab === 'wallet' ? 'flex' : 'none' }}>
-              <WalletTab />
-            </View>
-          )}
+
           {visitedTabs.has('profile') && (
             <View style={{ flex: 1, display: activeTab === 'profile' ? 'flex' : 'none' }}>
-              <ProfileTab onOpenReport={() => setReportModalVisible(true)} />
+              <ProfileTab />
             </View>
           )}
         </View>
-      </KeyboardAvoidingView>
 
-      {/* CURVED / RAISED FLOATING BOTTOM BAR CON BOTÓN [+] CENTRAL */}
-      <View style={[styles.bottomNav, { 
-        backgroundColor: barBg, 
-        borderTopColor: borderHairline, 
-        paddingBottom: Math.max(insets.bottom, 10),
-        height: 64 + Math.max(insets.bottom, 10),
-      }]}>
-
-        {/* TAB 1: VEHÍCULO */}
-        {(() => {
-          const item = tabs[0];
-          const isActive = activeTab === item.id;
-          const { scale, translateY } = getTabAnim(0);
-          return (
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <View style={[
+          styles.bottomNavContainer,
+          {
+            backgroundColor: barBg,
+            borderTopColor: borderHairline,
+            paddingBottom: Math.max(insets.bottom + 8, Platform.OS === 'ios' ? 24 : 14),
+          }
+        ]}>
+          {/* Left 2 Tabs: Planta, Cortes */}
+          <View style={styles.navGroup}>
             <TouchableOpacity 
-              key={item.id} 
-              onPress={() => handleTabPress(item.id, 0)} 
-              style={styles.navItem} 
-              activeOpacity={0.8}
+              style={styles.navButton}
+              onPress={() => handleSelectTab('moto')}
+              activeOpacity={0.7}
             >
-              <Animated.View style={[
-                styles.iconBubble,
-                isActive && { backgroundColor: isDark ? 'rgba(10,132,255,0.18)' : 'rgba(0,122,255,0.14)', borderColor: colors.primary, borderWidth: 1 },
-                { transform: [{ scale }, { translateY }] }
+              <MaterialCommunityIcons 
+                name="engine" 
+                size={22} 
+                color={activeTab === 'moto' ? colors.primary : colors.onSurfaceVariant} 
+              />
+              <Text style={[
+                styles.navLabel,
+                { 
+                  fontFamily: activeTab === 'moto' ? F.bold : F.medium,
+                  color: activeTab === 'moto' ? colors.primary : colors.onSurfaceVariant 
+                }
               ]}>
-                <MaterialCommunityIcons 
-                  name={item.icon as any} 
-                  size={22} 
-                  color={isActive ? colors.primary : colors.onSurfaceVariant} 
-                />
-              </Animated.View>
-              <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.onSurfaceVariant, fontFamily: isActive ? F.bold : F.medium }]}>
-                {item.label}
+                Planta
               </Text>
             </TouchableOpacity>
-          );
-        })()}
 
-        {/* TAB 2: SERVICIOS */}
-        {(() => {
-          const item = tabs[1];
-          const isActive = activeTab === item.id;
-          const { scale, translateY } = getTabAnim(1);
-          return (
             <TouchableOpacity 
-              key={item.id} 
-              onPress={() => handleTabPress(item.id, 1)} 
-              style={styles.navItem} 
-              activeOpacity={0.8}
+              style={styles.navButton}
+              onPress={() => handleSelectTab('outages')}
+              activeOpacity={0.7}
             >
-              <Animated.View style={[
-                styles.iconBubble,
-                isActive && { backgroundColor: isDark ? 'rgba(10,132,255,0.18)' : 'rgba(0,122,255,0.14)', borderColor: colors.primary, borderWidth: 1 },
-                { transform: [{ scale }, { translateY }] }
+              <MaterialIcons 
+                name="calendar-month" 
+                size={22} 
+                color={activeTab === 'outages' ? colors.primary : colors.onSurfaceVariant} 
+              />
+              <Text style={[
+                styles.navLabel,
+                { 
+                  fontFamily: activeTab === 'outages' ? F.bold : F.medium,
+                  color: activeTab === 'outages' ? colors.primary : colors.onSurfaceVariant 
+                }
               ]}>
-                <MaterialIcons 
-                  name={item.icon as any} 
-                  size={22} 
-                  color={isActive ? colors.primary : colors.onSurfaceVariant} 
-                />
-              </Animated.View>
-              <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.onSurfaceVariant, fontFamily: isActive ? F.bold : F.medium }]}>
-                {item.label}
+                Cortes
               </Text>
             </TouchableOpacity>
-          );
-        })()}
+          </View>
 
-        {/* BOTÓN CENTRAL [+] DE ACCIÓN RÁPIDA (ELEVADO / FLOTANTE) */}
-        <TouchableOpacity 
-          onPress={handlePlusPress} 
-          style={styles.centerPlusItem} 
-          activeOpacity={0.9}
-        >
-          <Animated.View style={{ transform: [{ scale: plusScale }] }}>
-            <LinearGradient
-              colors={['#0A84FF', '#0062D2']}
-              style={styles.centerPlusCircle}
+          {/* Central Raised [+] Button */}
+          <View style={styles.centerButtonWrapper}>
+            <TouchableOpacity
+              style={[styles.centerFab, { shadowColor: colors.primary }]}
+              onPress={() => setQuickActionVisible(true)}
+              activeOpacity={0.85}
             >
-              <MaterialIcons name="add" size={28} color="#FFF" />
-            </LinearGradient>
-          </Animated.View>
-        </TouchableOpacity>
+              <LinearGradient
+                colors={isDark ? ['#bdd2fe', '#4b5f84'] : ['#0a2558', '#001136']}
+                style={styles.centerFabGradient}
+              >
+                <MaterialIcons name="add" size={28} color={isDark ? '#001136' : '#FFFFFF'} />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
-        {/* TAB 3: HISTORIAL */}
-        {(() => {
-          const item = tabs[2];
-          const isActive = activeTab === item.id;
-          const { scale, translateY } = getTabAnim(2);
-          return (
+          {/* Right 2 Tabs: Servicios, Perfil */}
+          <View style={styles.navGroup}>
             <TouchableOpacity 
-              key={item.id} 
-              onPress={() => handleTabPress(item.id, 2)} 
-              style={styles.navItem} 
-              activeOpacity={0.8}
+              style={styles.navButton}
+              onPress={() => handleSelectTab('services')}
+              activeOpacity={0.7}
             >
-              <Animated.View style={[
-                styles.iconBubble,
-                isActive && { backgroundColor: isDark ? 'rgba(10,132,255,0.18)' : 'rgba(0,122,255,0.14)', borderColor: colors.primary, borderWidth: 1 },
-                { transform: [{ scale }, { translateY }] }
+              <MaterialIcons 
+                name="build" 
+                size={20} 
+                color={activeTab === 'services' ? colors.primary : colors.onSurfaceVariant} 
+              />
+              <Text style={[
+                styles.navLabel,
+                { 
+                  fontFamily: activeTab === 'services' ? F.bold : F.medium,
+                  color: activeTab === 'services' ? colors.primary : colors.onSurfaceVariant 
+                }
               ]}>
-                <MaterialIcons 
-                  name={item.icon as any} 
-                  size={22} 
-                  color={isActive ? colors.primary : colors.onSurfaceVariant} 
-                />
-              </Animated.View>
-              <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.onSurfaceVariant, fontFamily: isActive ? F.bold : F.medium }]}>
-                {item.label}
+                Servicios
               </Text>
             </TouchableOpacity>
-          );
-        })()}
 
-        {/* TAB 4: WALLET */}
-        {(() => {
-          const item = tabs[3];
-          const isActive = activeTab === item.id;
-          const { scale, translateY } = getTabAnim(3);
-          return (
             <TouchableOpacity 
-              key={item.id} 
-              onPress={() => handleTabPress(item.id, 3)} 
-              style={styles.navItem} 
-              activeOpacity={0.8}
+              style={styles.navButton}
+              onPress={() => handleSelectTab('profile')}
+              activeOpacity={0.7}
             >
-              <Animated.View style={[
-                styles.iconBubble,
-                isActive && { backgroundColor: isDark ? 'rgba(10,132,255,0.18)' : 'rgba(0,122,255,0.14)', borderColor: colors.primary, borderWidth: 1 },
-                { transform: [{ scale }, { translateY }] }
+              <MaterialIcons 
+                name="person" 
+                size={22} 
+                color={activeTab === 'profile' ? colors.primary : colors.onSurfaceVariant} 
+              />
+              <Text style={[
+                styles.navLabel,
+                { 
+                  fontFamily: activeTab === 'profile' ? F.bold : F.medium,
+                  color: activeTab === 'profile' ? colors.primary : colors.onSurfaceVariant 
+                }
               ]}>
-                <MaterialIcons 
-                  name={item.icon as any} 
-                  size={22} 
-                  color={isActive ? colors.primary : colors.onSurfaceVariant} 
-                />
-              </Animated.View>
-              <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.onSurfaceVariant, fontFamily: isActive ? F.bold : F.medium }]}>
-                {item.label}
+                Perfil
               </Text>
             </TouchableOpacity>
-          );
-        })()}
-
-        {/* TAB 5: PERFIL */}
-        {(() => {
-          const item = tabs[4];
-          const isActive = activeTab === item.id;
-          const { scale, translateY } = getTabAnim(4);
-          return (
-            <TouchableOpacity 
-              key={item.id} 
-              onPress={() => handleTabPress(item.id, 4)} 
-              style={styles.navItem} 
-              activeOpacity={0.8}
-            >
-              <Animated.View style={[
-                styles.iconBubble,
-                isActive && { backgroundColor: isDark ? 'rgba(10,132,255,0.18)' : 'rgba(0,122,255,0.14)', borderColor: colors.primary, borderWidth: 1 },
-                { transform: [{ scale }, { translateY }] }
-              ]}>
-                <MaterialIcons 
-                  name={item.icon as any} 
-                  size={22} 
-                  color={isActive ? colors.primary : colors.onSurfaceVariant} 
-                />
-              </Animated.View>
-              <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.onSurfaceVariant, fontFamily: isActive ? F.bold : F.medium }]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })()}
+          </View>
+        </View>
 
       </View>
 
-      {/* MODAL: ACCIONES RÁPIDAS AL TOCAR [+] */}
-      <Modal visible={quickActionVisible} transparent={true} animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
-          <View style={[styles.quickSheet, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={[styles.sheetHandle, { backgroundColor: colors.outlineVariant }]} />
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 19 }}>Acciones Rápidas</Text>
-              <TouchableOpacity onPress={() => setQuickActionVisible(false)} style={styles.sheetCloseBtn}>
-                <MaterialIcons name="close" size={22} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 13, marginBottom: 18 }}>
-              Registra novedades de tu vehículo en segundos sin tener que buscar entre menús:
+      {/* MODAL: ACCIONES RÁPIDAS (Quick Action Sheet) */}
+      <Modal visible={quickActionVisible} transparent animationType="fade" onRequestClose={() => setQuickActionVisible(false)}>
+        <TouchableOpacity 
+          style={styles.actionSheetBackdrop} 
+          activeOpacity={1} 
+          onPress={() => setQuickActionVisible(false)}
+        >
+          <View style={[styles.actionSheetCard, { backgroundColor: isDark ? '#191C24' : '#FFFFFF' }]}>
+            <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 16, marginBottom: 14 }}>
+              Acción Rápida de Planta Eléctrica
             </Text>
 
-            <View style={{ gap: 12 }}>
-              <TouchableOpacity 
-                onPress={() => {
-                  setQuickActionVisible(false);
-                  setQuickOdoVisible(true);
-                }}
-                style={[styles.quickOptionRow, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.quickIconBox, { backgroundColor: 'rgba(10,132,255,0.15)' }]}>
-                  <MaterialIcons name="speed" size={24} color="#0A84FF" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 15 }}>Actualizar Odómetro</Text>
-                  <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
-                    Actual: {myMoto?.currentOdometer || 0} km • Registra tu recorrido de hoy
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
+            {/* Opción 1: Actualizar Horómetro */}
+            <TouchableOpacity
+              style={styles.actionOptionRow}
+              onPress={() => {
+                setQuickActionVisible(false);
+                setNewHoroInput(activeGenerator?.currentHours.toString() || '0');
+                setQuickHoroVisible(true);
+              }}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(37, 99, 235, 0.15)' }]}>
+                <MaterialIcons name="speed" size={22} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 14 }}>
+                  ⏱️ Actualizar Horómetro Actual
+                </Text>
+                <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 11 }}>
+                  Registrar las horas actuales de operación del generador
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-              <TouchableOpacity 
-                onPress={() => {
-                  setQuickActionVisible(false);
-                  setQuickFuelVisible(true);
-                }}
-                style={[styles.quickOptionRow, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.quickIconBox, { backgroundColor: 'rgba(255,149,0,0.15)' }]}>
-                  <MaterialIcons name="local-gas-station" size={24} color="#FF9500" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 15 }}>Cargar Combustible</Text>
-                  <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
-                    Registra litros, gasto en USD y tanqueo
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
+            {/* Opción 2: Corte Eléctrico */}
+            <TouchableOpacity
+              style={styles.actionOptionRow}
+              onPress={async () => {
+                setQuickActionVisible(false);
+                if (activeOutage) {
+                  await endOutage();
+                  Alert.alert('Energía Restablecida', 'Se registró el regreso de la red eléctrica.');
+                } else {
+                  await startOutage();
+                  Alert.alert('Corte Eléctrico', 'Se registró el corte eléctrico. Planta en marcha.');
+                }
+              }}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: activeOutage ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)' }]}>
+                <MaterialCommunityIcons 
+                  name={activeOutage ? "power" : "flash-alert"} 
+                  size={22} 
+                  color={activeOutage ? "#10B981" : "#F59E0B"} 
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 14 }}>
+                  {activeOutage ? '🟢 Registrar Regreso de Electricidad' : '⚡ Registrar Corte Eléctrico'}
+                </Text>
+                <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 11 }}>
+                  {activeOutage ? 'Marcar que la luz comercial ha vuelto' : 'Registrar inicio de apagón en la zona'}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-              <TouchableOpacity 
-                onPress={() => {
-                  setQuickActionVisible(false);
-                  setActiveTab('services');
-                }}
-                style={[styles.quickOptionRow, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.quickIconBox, { backgroundColor: 'rgba(175,82,222,0.15)' }]}>
-                  <MaterialIcons name="build" size={24} color="#AF52DE" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 15 }}>Registrar Servicio</Text>
-                  <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
-                    Aceite, frenos, repuestos y costos
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                onPress={() => {
-                  setQuickActionVisible(false);
-                  setActiveTab('wallet');
-                }}
-                style={[styles.quickOptionRow, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.quickIconBox, { backgroundColor: 'rgba(48,209,88,0.15)' }]}>
-                  <MaterialIcons name={isDesktop ? "upload-file" : "qr-code-scanner"} size={24} color="#30D158" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 15 }}>
-                    {isDesktop ? 'Subir Documento o Carnet' : 'Escanear QR o Carnet'}
-                  </Text>
-                  <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
-                    {isDesktop ? 'Cargar archivo o foto de documento' : 'Adjuntar foto de documento o leer código QR'}
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ height: 26 }} />
+            {/* Opción 3: Registrar Servicio */}
+            <TouchableOpacity
+              style={styles.actionOptionRow}
+              onPress={() => {
+                setQuickActionVisible(false);
+                setServiceHoroInput(activeGenerator?.currentHours.toString() || '0');
+                setQuickServiceVisible(true);
+              }}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+                <MaterialIcons name="build" size={22} color="#8B5CF6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 14 }}>
+                  🛠️ Registrar Mantenimiento Realizado
+                </Text>
+                <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 11 }}>
+                  Cambio de aceite, filtros o revisión técnica sin costos
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
 
-      {/* MODAL RÁPIDO: ACTUALIZAR ODÓMETRO (MOBILE) */}
-      <Modal visible={quickOdoVisible} transparent={true} animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={[styles.dialogBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 18, textAlign: 'center' }}>
-              Actualizar Odómetro
-            </Text>
-            <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
-              Odómetro actual: {myMoto?.currentOdometer || 0} km
+      {/* QUICK MODAL: ACTUALIZAR HORÓMETRO */}
+      <Modal visible={quickHoroVisible} transparent animationType="slide" onRequestClose={() => setQuickHoroVisible(false)}>
+        <View style={styles.dialogOverlay}>
+          <View style={[styles.dialogBox, { backgroundColor: isDark ? '#191C24' : '#FFFFFF' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 16 }}>
+                ⏱️ Actualizar Horómetro
+              </Text>
+              <TouchableOpacity onPress={() => setQuickHoroVisible(false)}>
+                <MaterialIcons name="close" size={20} color={colors.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12 }}>
+              Horómetro actual: {activeGenerator?.currentHours || 0} hrs
             </Text>
 
             <TextInput 
-              value={newOdoInput}
-              onChangeText={setNewOdoInput}
-              placeholder={`Mayor a ${myMoto?.currentOdometer || 0} km`}
+              value={newHoroInput}
+              onChangeText={setNewHoroInput}
+              placeholder="Ej: 1255.0"
               placeholderTextColor={colors.onSurfaceVariant}
               keyboardType="numeric"
-              style={[styles.dialogInput, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]}
+              style={[styles.dialogInput, { backgroundColor: isDark ? '#232733' : '#F1F4F9', color: colors.onSurface, fontFamily: F.extrabold, fontSize: 22 }]}
+              autoFocus
+            />
+
+            <TextInput 
+              value={horoNotesInput}
+              onChangeText={setHoroNotesInput}
+              placeholder="Notas u observaciones (opcional)"
+              placeholderTextColor={colors.onSurfaceVariant}
+              style={[styles.dialogInput, { backgroundColor: isDark ? '#232733' : '#F1F4F9', color: colors.onSurface, fontFamily: F.regular, fontSize: 13, height: 60, marginTop: 10 }]}
+              multiline
             />
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity onPress={() => setQuickOdoVisible(false)} style={[styles.dialogBtn, { borderColor: colors.outlineVariant, borderWidth: 0.5 }]}>
+              <TouchableOpacity onPress={() => setQuickHoroVisible(false)} style={[styles.dialogBtn, { borderColor: colors.onSurfaceVariant, borderWidth: 1 }]}>
                 <Text style={{ fontFamily: F.bold, color: colors.onSurface }}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveQuickOdo} style={[styles.dialogBtn, { backgroundColor: colors.primary }]}>
-                <Text style={{ fontFamily: F.bold, color: colors.onPrimary }}>Actualizar</Text>
+              <TouchableOpacity onPress={handleSaveQuickHoro} style={[styles.dialogBtn, { backgroundColor: colors.primary }]}>
+                <Text style={{ fontFamily: F.bold, color: '#FFFFFF' }}>Guardar Horómetro</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL RÁPIDO: CARGAR COMBUSTIBLE (MOBILE) */}
-      <Modal visible={quickFuelVisible} transparent={true} animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={[styles.dialogBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 18, textAlign: 'center' }}>
-              Cargar Combustible
-            </Text>
-            <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
-              Registra los datos de tu tanqueo
+      {/* QUICK MODAL: REGISTRAR SERVICIO */}
+      <Modal visible={quickServiceVisible} transparent animationType="slide" onRequestClose={() => setQuickServiceVisible(false)}>
+        <View style={styles.dialogOverlay}>
+          <View style={[styles.dialogBox, { backgroundColor: isDark ? '#191C24' : '#FFFFFF' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 16 }}>
+                🛠️ Registrar Mantenimiento
+              </Text>
+              <TouchableOpacity onPress={() => setQuickServiceVisible(false)}>
+                <MaterialIcons name="close" size={20} color={colors.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontFamily: F.regular, color: colors.onSurfaceVariant, fontSize: 12, marginBottom: 8 }}>
+              Registra el servicio preventivo realizado a la planta (sin montos).
             </Text>
 
-            <Text style={{ fontFamily: F.bold, fontSize: 11, color: colors.onSurfaceVariant, marginBottom: 6 }}>LITROS CARGADOS:</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+              {(['oil', 'oil_filter', 'fuel_filter', 'air_filter', 'coolant', 'battery'] as const).map(t => (
+                <TouchableOpacity
+                  key={t}
+                  style={[
+                    styles.typeChipSmall,
+                    { backgroundColor: isDark ? '#232733' : '#F1F4F9' },
+                    serviceTypeInput === t && { backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: colors.primary, borderWidth: 1 }
+                  ]}
+                  onPress={() => setServiceTypeInput(t)}
+                >
+                  <Text style={{ fontFamily: F.semibold, color: serviceTypeInput === t ? colors.primary : colors.onSurface, fontSize: 11 }}>
+                    {t === 'oil' ? 'Aceite 15W-40' : t === 'oil_filter' ? 'Filtro Aceite' : t === 'fuel_filter' ? 'Filtro Combustible' : t === 'air_filter' ? 'Filtro Aire' : t === 'coolant' ? 'Refrigerante' : 'Batería'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TextInput 
-              value={fuelLitersInput}
-              onChangeText={setFuelLitersInput}
-              placeholder="Ej. 10"
+              value={serviceHoroInput}
+              onChangeText={setServiceHoroInput}
+              placeholder="Horómetro (hrs)"
               placeholderTextColor={colors.onSurfaceVariant}
               keyboardType="numeric"
-              style={[styles.dialogInput, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold, marginBottom: 12 }]}
+              style={[styles.dialogInput, { backgroundColor: isDark ? '#232733' : '#F1F4F9', color: colors.onSurface, fontFamily: F.bold, fontSize: 15 }]}
             />
 
-            <Text style={{ fontFamily: F.bold, fontSize: 11, color: colors.onSurfaceVariant, marginBottom: 6 }}>COSTO EN USD ($):</Text>
             <TextInput 
-              value={fuelUsdInput}
-              onChangeText={setFuelUsdInput}
-              placeholder="Ej. 5.00"
+              value={serviceNotesInput}
+              onChangeText={setServiceNotesInput}
+              placeholder="Detalle técnico de la intervención"
               placeholderTextColor={colors.onSurfaceVariant}
-              keyboardType="numeric"
-              style={[styles.dialogInput, { backgroundColor: colors.surfaceContainer, color: colors.onSurface, borderColor: colors.outlineVariant, fontFamily: F.bold }]}
+              style={[styles.dialogInput, { backgroundColor: isDark ? '#232733' : '#F1F4F9', color: colors.onSurface, fontFamily: F.regular, fontSize: 13, height: 60, marginTop: 10 }]}
+              multiline
             />
 
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
-              <TouchableOpacity onPress={() => setQuickFuelVisible(false)} style={[styles.dialogBtn, { borderColor: colors.outlineVariant, borderWidth: 0.5 }]}>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity onPress={() => setQuickServiceVisible(false)} style={[styles.dialogBtn, { borderColor: colors.onSurfaceVariant, borderWidth: 1 }]}>
                 <Text style={{ fontFamily: F.bold, color: colors.onSurface }}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveQuickFuel} style={[styles.dialogBtn, { backgroundColor: '#FF9500' }]}>
-                <Text style={{ fontFamily: F.bold, color: '#FFF' }}>Guardar</Text>
+              <TouchableOpacity onPress={handleSaveQuickService} style={[styles.dialogBtn, { backgroundColor: colors.primary }]}>
+                <Text style={{ fontFamily: F.bold, color: '#FFFFFF' }}>Guardar Servicio</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL: REPORTE EJECUTIVO PDF (MOBILE) */}
-      <VehicleReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        myMoto={myMoto}
-        specs={specs}
+      {/* Ficha Técnica Modal */}
+      <TechnicalSheetModal 
+        visible={specsModalVisible}
+        onClose={() => setSpecsModalVisible(false)}
+      />
+
+      {/* Calendario & Conteo Modal */}
+      <VehicleStatsAndCalendarModal
+        visible={calModalVisible}
+        onClose={() => setCalModalVisible(false)}
       />
 
     </View>
@@ -829,126 +511,124 @@ export const MainApp = () => {
 };
 
 const styles = StyleSheet.create({
-  desktopTabContainer: {
-    maxWidth: 1240,
+  rootWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  appContainer: {
+    flex: 1,
     width: '100%',
     alignSelf: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 24,
-  },
-  desktopModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backdropFilter: 'blur(8px)',
-  } as any,
-  bottomNav: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-around', 
-    alignItems: 'center', 
-    borderTopWidth: 0.5, 
-    position: 'absolute', 
-    bottom: 0, 
-    width: '100%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowRadius: 24,
     elevation: 10,
-    paddingHorizontal: 8,
+    overflow: 'hidden',
   },
-  navItem: { 
+  bottomNavContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  navGroup: {
     flex: 1,
-    alignItems: 'center', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  navButton: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 2,
+    minHeight: 44,
   },
-  iconBubble: {
+  navLabel: {
+    fontSize: 10.5,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  centerButtonWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  centerFab: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginTop: -20,
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  centerFabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionSheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  actionSheetCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 12,
+    maxWidth: 480,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  actionOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+  },
+  actionIconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
-  navLabel: { 
-    fontSize: 10, 
-    letterSpacing: 0.1,
-  },
-  centerPlusItem: {
-    width: 60,
-    alignItems: 'center',
+  dialogOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
-    top: -16,
-  },
-  centerPlusCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#0A84FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  quickSheet: {
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 22,
-    borderWidth: 0.5,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 5,
-    borderRadius: 2.5,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  sheetCloseBtn: {
-    padding: 4,
-  },
-  quickOptionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 0.5,
-  },
-  quickIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
   },
   dialogBox: {
+    borderRadius: 18,
+    padding: 20,
+    maxWidth: 440,
+    alignSelf: 'center',
     width: '100%',
-    maxWidth: 420,
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 0.8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    elevation: 10,
   },
   dialogInput: {
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 0.8,
-    paddingHorizontal: 16,
-    fontSize: 15,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 8,
   },
   dialogBtn: {
     flex: 1,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
+  },
+  typeChipSmall: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
 });

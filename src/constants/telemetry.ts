@@ -1,141 +1,120 @@
-import { ComponentType } from '../domain/entities/Moto';
-export { ComponentType };
+import { GeneratorComponentType } from '../domain/entities/Generator';
+export { GeneratorComponentType, GeneratorComponentType as ComponentType };
 
-export const COMPONENT_LIFESPAN_KM: Record<Exclude<ComponentType, 'fuel' | 'other'>, number> = {
-  oil: 5000,
-  oil_filter: 5000,
-  tires_front: 15000,
-  tires_rear: 12000,
-  brakes_front: 15000,
-  brakes_rear: 15000,
-  chain: 25000,
-  timing_belt: 50000,
-  cabin_filter: 15000,
-  coolant: 40000,
-  brake_fluid: 40000,
-  transmission_fluid: 50000,
-  battery: 40000,
-  shock_absorbers: 60000,
-  accessory_belt: 40000,
-  wiper_blades: 20000,
-  clutch: 80000,
-  air_filter: 15000,
-  fuel_filter: 30000,
-  spark_plugs: 20000,
+/**
+ * Vida útil recomendada en HORAS de operación para componentes de planta eléctrica.
+ * Basado en estándares de fabricantes (Caterpillar, Cummins, Perkins, Generac).
+ */
+export const GENERATOR_COMPONENT_LIFESPAN_HOURS: Record<string, number> = {
+  oil: 200,                  // Aceite de Motor (cada 200 - 250 hrs de operación)
+  oil_filter: 200,           // Filtro de Aceite
+  fuel_filter: 250,          // Filtro de Combustible / Trampa de Agua
+  air_filter: 300,           // Filtro de Aire
+  coolant: 1000,             // Refrigerante / Anticongelante
+  battery: 1000,             // Batería de Arranque
+  spark_plugs: 300,          // Bujías (Plantas a gas/gasolina)
+  belts: 500,                // Correas de ventilador / alternador
+  valves_calibration: 500,   // Calibración de válvulas e inyectores
+  general_inspection: 250,   // Inspección preventiva general
+  other: 200,
+
+  // Compatibility aliases
+  tires_front: 500,
+  tires_rear: 500,
+  brakes_front: 500,
+  brakes_rear: 500,
+  chain: 500,
+  timing_belt: 500,
+  cabin_filter: 500,
+  brake_fluid: 500,
+  transmission_fluid: 500,
+  shock_absorbers: 500,
+  accessory_belt: 500,
+  wiper_blades: 500,
+  clutch: 500,
+  fuel: 500,
 };
 
-// Lifespan for cars specifically (based on recambiosdeconfianza and automotive standard)
-export const CAR_COMPONENT_LIFESPAN_KM: Record<string, number> = {
-  oil: 7500,
-  oil_filter: 7500,
-  air_filter: 20000,
-  cabin_filter: 15000,
-  fuel_filter: 35000,
-  spark_plugs: 30000,
-  timing_belt: 45000, // Optra 1.8 DOHC is critical 40k-50k km
-  coolant: 40000,
-  brake_fluid: 40000,
-  brakes_front: 30000,
-  brakes_rear: 50000,
-  battery: 40000,
-  shock_absorbers: 60000,
-  tires_front: 40000,
-  tires_rear: 40000,
-  transmission_fluid: 50000,
-  accessory_belt: 40000,
-  wiper_blades: 20000,
-  clutch: 80000,
-};
-
-export const COMPONENT_NAMES: Record<ComponentType, string> = {
-  oil: 'Aceite de Motor',
+export const COMPONENT_NAMES: Record<string, string> = {
+  oil: 'Aceite de Motor (15W-40)',
   oil_filter: 'Filtro de Aceite',
-  tires_front: 'Caucho Delantero',
-  tires_rear: 'Caucho Trasero',
-  brakes_front: 'Frenos Delanteros',
-  brakes_rear: 'Frenos Traseros',
-  chain: 'Cadena de Transmisión',
-  timing_belt: 'Correa de Distribución (Tiempo)',
-  cabin_filter: 'Filtro de Habitáculo / A/C',
-  coolant: 'Refrigerante / Anticongelante',
-  brake_fluid: 'Líquido de Frenos',
-  transmission_fluid: 'Aceite de Transmisión',
-  battery: 'Batería',
-  shock_absorbers: 'Amortiguadores / Suspensión',
-  accessory_belt: 'Correa de Accesorios',
-  wiper_blades: 'Limpiaparabrisas (Plumillas)',
-  clutch: 'Embrague / Clutch',
+  fuel_filter: 'Filtro de Combustible / Trampa de Agua',
   air_filter: 'Filtro de Aire',
-  fuel_filter: 'Filtro de Gasolina',
-  spark_plugs: 'Bujías',
+  coolant: 'Refrigerante 50/50',
+  battery: 'Batería de Arranque',
+  spark_plugs: 'Bujías de Encendido',
+  belts: 'Correas de Transmisión',
+  valves_calibration: 'Calibración de Válvulas',
+  general_inspection: 'Inspección General',
+  other: 'Otro Mantenimiento',
+
+  // Compatibility aliases
+  tires_front: 'Inspección Mecánica Delantera',
+  tires_rear: 'Inspección Mecánica Trasera',
+  brakes_front: 'Sistema de Frenado',
+  brakes_rear: 'Sistema de Frenado Secundario',
+  chain: 'Transmisión',
+  timing_belt: 'Correa de Distribución',
+  cabin_filter: 'Filtro de Aire',
+  brake_fluid: 'Líquido Hidráulico',
+  transmission_fluid: 'Fluidos de Transmisión',
+  shock_absorbers: 'Soportes Antivibratorios',
+  accessory_belt: 'Correa de Accesorios',
+  wiper_blades: 'Protección',
+  clutch: 'Acople',
   fuel: 'Combustible',
-  other: 'Otro Mantenimiento'
 };
 
-export const getComponentLifespan = (component: ComponentType, isCarVehicle = false): number => {
-  if (isCarVehicle && component in CAR_COMPONENT_LIFESPAN_KM) {
-    return CAR_COMPONENT_LIFESPAN_KM[component];
-  }
-  return COMPONENT_LIFESPAN_KM[component as Exclude<ComponentType, 'fuel' | 'other'>] || 15000;
+export const COMPONENT_ICONS: Record<string, string> = {
+  oil: 'opacity',
+  oil_filter: 'filter-alt',
+  fuel_filter: 'local-gas-station',
+  air_filter: 'air',
+  coolant: 'ac-unit',
+  battery: 'battery-charging-full',
+  spark_plugs: 'flash-on',
+  belts: 'all-inclusive',
+  valves_calibration: 'build',
+  general_inspection: 'verified',
+  other: 'handyman',
 };
 
-export const getVehicleComponents = (isCarVehicle = false): ComponentType[] => {
-  if (isCarVehicle) {
-    return [
-      'fuel',
-      'oil',
-      'oil_filter',
-      'timing_belt',
-      'coolant',
-      'brake_fluid',
-      'cabin_filter',
-      'air_filter',
-      'fuel_filter',
-      'spark_plugs',
-      'brakes_front',
-      'brakes_rear',
-      'tires_front',
-      'tires_rear',
-      'battery',
-      'shock_absorbers',
-      'transmission_fluid',
-      'accessory_belt',
-      'wiper_blades',
-      'clutch',
-      'other',
-    ];
-  }
-  return [
-    'fuel',
-    'oil',
-    'tires_front',
-    'tires_rear',
-    'brakes_front',
-    'brakes_rear',
-    'chain',
-    'air_filter',
-    'fuel_filter',
-    'spark_plugs',
-    'battery',
-    'other',
-  ];
+export const getVehicleComponents = (_isCar = false): GeneratorComponentType[] => [
+  'oil',
+  'oil_filter',
+  'fuel_filter',
+  'air_filter',
+  'coolant',
+  'battery',
+  'belts',
+  'general_inspection',
+];
+
+export const getComponentLifespan = (component: string, _isCar = false): number => {
+  return GENERATOR_COMPONENT_LIFESPAN_HOURS[component] || 200;
 };
 
 export const calculateWearPercentage = (
-  currentOdo: number, 
-  lastChangeOdo: number, 
-  component: Exclude<ComponentType, 'fuel' | 'other'>,
-  lifespanOverride?: number,
-  isCarVehicle = false
+  currentHours: number,
+  lastServiceHours: number,
+  intervalHours: number = 200,
+  ..._rest: any[]
 ): number => {
-  const maxLife = lifespanOverride || getComponentLifespan(component, isCarVehicle);
-  const distanceTraveled = currentOdo - lastChangeOdo;
-  
-  if (distanceTraveled < 0) return 100; // Anomaly (odo rolled back?)
-  if (distanceTraveled >= maxLife) return 0; // Completely worn
-  
-  const percentLeft = ((maxLife - distanceTraveled) / maxLife) * 100;
-  return Math.round(percentLeft);
+  if (currentHours <= lastServiceHours) return 100;
+  const hoursOperated = currentHours - lastServiceHours;
+  const remaining = intervalHours - hoursOperated;
+  if (remaining <= 0) return 0;
+  return Math.min(100, Math.round((remaining / intervalHours) * 100));
 };
 
-
+export const getServiceStatus = (
+  hoursRemaining: number
+): { status: 'optimal' | 'warning' | 'critical'; label: string; color: string } => {
+  if (hoursRemaining <= 0) {
+    return { status: 'critical', label: 'SERVICIO VENCIDO', color: '#EF4444' };
+  }
+  if (hoursRemaining <= 25) {
+    return { status: 'warning', label: 'SERVICIO PRÓXIMO', color: '#F59E0B' };
+  }
+  return { status: 'optimal', label: 'OPERATIVO ÓPTIMO', color: '#10B981' };
+};

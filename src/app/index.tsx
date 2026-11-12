@@ -5,6 +5,7 @@ import { SetupScreen } from '@/presentation/screens/SetupScreen';
 import { MainApp } from '@/presentation/screens/MainApp';
 import { AuthScreen } from '@/presentation/screens/AuthScreen';
 import { LandingScreen } from '@/presentation/screens/LandingScreen';
+import { AdminDashboard } from '@/presentation/components/web/AdminDashboard';
 import { supabase } from '@/data/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,33 +13,7 @@ import * as Linking from 'expo-linking';
 import { handleRecoveryDeepLink, cleanUrlHash } from '@/services/authRecoveryService';
 import { ForgotPasswordStep } from '@/presentation/components/ForgotPasswordModal';
 
-const PreloadScreen = () => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
-      ])
-    ).start();
-
-    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-  }, []);
-
-  return (
-    <View style={styles.preloadContainer}>
-      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', transform: [{ scale: pulseAnim }] }}>
-        <View style={styles.iconCircle}>
-          <MaterialCommunityIcons name="engine" size={60} color="#8ca9ff" />
-        </View>
-      </Animated.View>
-      <Animated.Text style={[styles.preloadText, { opacity: fadeAnim }]}>Arrancando motores...</Animated.Text>
-    </View>
-  );
-};
-
+import { CorporatePreloadScreen } from '@/presentation/components/CorporatePreloadScreen';
 import { isWebPlatform } from '@/presentation/utils/platformMode';
 
 const checkIsRecoveryInitial = () => {
@@ -61,9 +36,11 @@ const checkIsRecoveryInitial = () => {
 };
 
 export default function HomeScreen() {
-  const { myMoto, isLoaded, isAddingMoto } = useMyMoto();
+  const { myMoto, isLoaded, isAddingMoto, isAuthenticated } = useMyMoto();
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  const isLoggedIn = Boolean(session || isAuthenticated);
 
   // Detección síncrona inicial de modo recuperación para evitar parpadeos o redirección prematura al dashboard
   const initialRecovery = checkIsRecoveryInitial();
@@ -75,10 +52,19 @@ export default function HomeScreen() {
   // Mantenemos un mínimo de tiempo para que se aprecie la animación (opcional, 1.5s)
   const [minWaitDone, setMinWaitDone] = useState(false);
 
-  // Estado de navegación inicial para la versión WEB: 'landing' | 'auth' | 'app'
-  const [viewState, setViewState] = useState<'landing' | 'auth' | 'app'>(initialRecovery ? 'auth' : 'landing');
+  // Estado de navegación inicial para la versión WEB: 'auth' | 'app'
+  const [viewState, setViewState] = useState<'auth' | 'app'>('auth');
 
   const isWeb = isWebPlatform();
+
+  useEffect(() => {
+    if (isAuthenticated && !isRecoveryModeRef.current) {
+      setViewState('app');
+    } else if (!isAuthenticated && !isRecoveryModeRef.current) {
+      setSession(null);
+      setViewState('auth');
+    }
+  }, [isAuthenticated, isWeb]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -100,13 +86,21 @@ export default function HomeScreen() {
         return;
       }
 
+      if (event === 'SIGNED_OUT' || !session) {
+        setSession(null);
+        if (!isRecoveryModeRef.current) {
+          setViewState('auth');
+        }
+        return;
+      }
+
       if (session) {
         if (!isRecoveryModeRef.current) {
           setViewState('app');
         }
       } else {
         if (!isRecoveryModeRef.current) {
-          setViewState('landing');
+          setViewState('auth');
         }
       }
     });
@@ -159,7 +153,12 @@ export default function HomeScreen() {
   }, []);
 
   if (authLoading || !isLoaded || !minWaitDone) {
-    return <PreloadScreen />;
+    return (
+      <CorporatePreloadScreen 
+        onFinish={() => setMinWaitDone(true)} 
+        minDuration={2200}
+      />
+    );
   }
 
   // ==========================================
@@ -191,7 +190,7 @@ export default function HomeScreen() {
         />
       );
     }
-    if (!session) {
+    if (!isLoggedIn) {
       return <AuthScreen />;
     }
     if (!myMoto || isAddingMoto) {
@@ -226,66 +225,17 @@ export default function HomeScreen() {
           isRecoveryModeRef.current = false;
           setIsRecoveryMode(false);
           setRecoveryError(null);
-          setViewState('landing');
+          setViewState('auth');
         }}
       />
     );
   }
 
-  if (viewState === 'landing') {
-    return (
-      <LandingScreen
-        isLoggedIn={Boolean(session)}
-        onEnter={() => {
-          if (session) {
-            setViewState('app');
-          } else {
-            setViewState('auth');
-          }
-        }}
-      />
-    );
+  // Si no ha iniciado sesión, mostrar directamente la pantalla de acceso corporativo
+  if (!isLoggedIn || viewState === 'auth') {
+    return <AuthScreen />;
   }
 
-  if (!session || viewState === 'auth') {
-    return (
-      <AuthScreen
-        onBack={() => setViewState('landing')}
-      />
-    );
-  }
-
-  if (!myMoto || isAddingMoto) {
-    return <SetupScreen />;
-  }
-
-  return <MainApp />;
+  // Panel Web Administrativo para Superusuario (Port 8081 / Dominio VPS en producción)
+  return <AdminDashboard />;
 }
-
-const styles = StyleSheet.create({
-  preloadContainer: {
-    flex: 1,
-    backgroundColor: '#111319',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#1d2025',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4169E1',
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 10
-  },
-  preloadText: {
-    color: '#c4cce0',
-    marginTop: 30,
-    fontSize: 16,
-    fontFamily: 'Montserrat_600SemiBold',
-    letterSpacing: 1
-  }
-});

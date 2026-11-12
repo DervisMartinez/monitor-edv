@@ -1,38 +1,45 @@
 {
   "expo": {
-    "name": "GARAGE",
+    "name": "EDV Monitor",
     "slug": "moto-app",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "motoapp",
+    "icon": "./assets/icon-app/edv blanco.png",
+    "scheme": "edvmonitor",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/icon-app/edv blanco.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070E1A"
+    },
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.dervis.garage",
-      "buildNumber": "2",
-      "supportsTablet": false,
+      "icon": "./assets/icon-app/edv blanco.png",
+      "bundleIdentifier": "com.empresasdelvalle.edvmonitor",
+      "buildNumber": "1",
+      "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "GARAGE necesita acceso a tus fotos para guardar y actualizar tu foto de perfil y documentos de la moto.",
-        "NSCameraUsageDescription": "GARAGE necesita acceso a tu cámara para tomar fotos de tu moto y documentos.",
-        "NSLocationWhenInUseUsageDescription": "GARAGE necesita tu ubicación para compartir tus coordenadas por correo o mensaje en caso de colisión o emergencia.",
-        "NSMotionUsageDescription": "GARAGE utiliza los sensores de movimiento y acelerómetro para detectar posibles caídas o impactos en ruta."
+        "NSPhotoLibraryUsageDescription": "EDV Monitor requiere acceso a tus fotos para guardar comprobantes o fotografías técnicas de la planta.",
+        "NSCameraUsageDescription": "EDV Monitor requiere acceso a tu cámara para fotografiar el horómetro físico y equipos.",
+        "NSLocationWhenInUseUsageDescription": "EDV Monitor registra la ubicación de la planta eléctrica para auditoría."
       }
     },
     "android": {
-      "package": "com.dervis.garage",
-      "versionCode": 2,
+      "package": "com.empresasdelvalle.edvmonitor",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon-app/edv blanco.png",
+        "backgroundColor": "#070E1A"
+      },
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/icon-app/edv blanco.png"
     },
     "plugins": [
       "expo-router",
@@ -40,20 +47,20 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "GARAGE necesita tu ubicación para enviar tus coordenadas exactas a tus familiares en emergencias."
+          "locationWhenInUsePermission": "EDV Monitor registra la ubicación para auditoría técnica de la planta eléctrica."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "GARAGE necesita acceso a tus fotos para guardar y actualizar tu foto de perfil y documentos de la moto.",
-          "cameraPermission": "GARAGE necesita acceso a tu cámara para tomar fotos de tu moto y documentos."
+          "photosPermission": "EDV Monitor requiere acceso a tus fotos para adjuntar comprobantes de servicios técnicos y reportes.",
+          "cameraPermission": "EDV Monitor requiere acceso a tu cámara para capturar fotografías del horómetro físico y equipos."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "GARAGE necesita acceso a tu cámara para escanear el código QR y fotografiar tus documentos."
+          "cameraPermission": "EDV Monitor requiere acceso a tu cámara para capturar lecturas del horómetro e inspecciones."
         }
       ]
     ],

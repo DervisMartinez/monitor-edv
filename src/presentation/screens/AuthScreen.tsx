@@ -9,6 +9,7 @@ import {
   Platform, 
   ActivityIndicator, 
   ImageBackground, 
+  Image,
   ScrollView,
   useWindowDimensions 
 } from 'react-native';
@@ -16,10 +17,13 @@ import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../data/supabaseClient';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
+import { useMyMoto } from '../context/MotoContext';
+import { EDVPalette } from '../../constants/colors';
 import { LegalConsentCheckboxes } from '../components/LegalConsentCheckboxes';
 import { LegalDocModal, LegalDocType } from '../components/LegalDocModal';
 import { ForgotPasswordModal, ForgotPasswordStep } from '../components/ForgotPasswordModal';
 import { recordLegalConsent } from '../../services/legalConsentService';
+import { AppUser } from '../../domain/entities/Generator';
 
 interface Props {
   onBack?: () => void;
@@ -40,6 +44,7 @@ export const AuthScreen: React.FC<Props> = ({
 }) => {
   // Theme and responsive state
   const { colors, mode, isDark } = useTheme();
+  const { loginDirectly, appUsers } = useMyMoto();
   const { width: windowWidth } = useWindowDimensions();
   const isDesktop = windowWidth >= 960;
   
@@ -90,17 +95,17 @@ export const AuthScreen: React.FC<Props> = ({
     extrabold: 'Montserrat_800ExtraBold',
   };
 
-  // Tokens oficiales según DESIGN.md
+  // Tokens oficiales según Empresas Del Valle Design System (PALETAEDV.jpg)
   const tokens = {
-    primary: isDark ? '#4169E1' : '#275FE3',
-    secondary: '#00e3fd',
-    tertiary: '#00ae78',
-    alert: '#ba1a1a',
-    surface: isDark ? '#111319' : '#f5f5f7',
-    surfaceCard: isDark ? '#191c21' : '#ffffff',
-    surfaceContainer: isDark ? '#1d2025' : '#ececf0',
-    surfaceHigh: isDark ? '#272a30' : '#e0e0e6',
-    outline: '#40485c',
+    primary: isDark ? '#38BDF8' : EDVPalette.corporateNavy,
+    secondary: '#10B981',
+    tertiary: '#059669',
+    alert: '#EF4444',
+    surface: isDark ? EDVPalette.darkNavy : EDVPalette.warmWhite,
+    surfaceCard: isDark ? EDVPalette.deepPetrol : '#FFFFFF',
+    surfaceContainer: isDark ? '#254454' : '#F0EFE6',
+    surfaceHigh: isDark ? '#33576A' : '#CFCDBC',
+    outline: isDark ? EDVPalette.steelTeal : EDVPalette.softSlate,
   };
 
   // Validaciones de navegación de pasos en Registro
@@ -121,7 +126,7 @@ export const AuthScreen: React.FC<Props> = ({
       setRegisterStep(2);
     } else if (registerStep === 2) {
       if (!firstName || !lastName) {
-        alert('Ingresa tu nombre y apellido para tu carnet de piloto');
+        alert('Ingresa tu nombre y apellido para tu cuenta');
         return;
       }
       setRegisterStep(3);
@@ -163,8 +168,61 @@ export const AuthScreen: React.FC<Props> = ({
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanPass = password.trim();
+
+        // 1. Intentar inicio de sesión nativo en Supabase GoTrue
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPass });
+          if (!error && data?.session) {
+            return;
+          }
+        } catch {}
+
+        // 2. Consulta directa a app_users en Supabase (operadores, técnicos y administradores)
+        let matched: AppUser | null = null;
+        try {
+          const { data: dbUser } = await supabase
+            .from('app_users')
+            .select('*')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+
+          if (dbUser) {
+            matched = {
+              id: dbUser.id,
+              email: dbUser.email,
+              fullName: dbUser.full_name,
+              role: dbUser.role as any,
+              assignedGeneratorId: dbUser.assigned_generator_id,
+              assignedGeneratorName: dbUser.assigned_generator_name,
+              companyId: dbUser.company_id,
+              companyName: dbUser.company_name,
+              departmentId: dbUser.department_id,
+              departmentName: dbUser.department_name,
+            };
+          }
+        } catch (dbErr) {
+          console.warn('[AuthScreen] Consulta app_users:', dbErr);
+        }
+
+        if (!matched) {
+          matched = appUsers.find(u => u.email.toLowerCase() === cleanEmail) || null;
+        }
+
+        // Si el usuario existe en el directorio corporativo de app_users, autenticar en sesión local
+        if (matched) {
+          await loginDirectly(
+            matched.email, 
+            matched.fullName, 
+            matched.role,
+            matched.assignedGeneratorId || undefined,
+            matched.assignedGeneratorName || undefined
+          );
+          return;
+        }
+
+        throw new Error('Correo o contraseña incorrectos.');
       } else {
         // 1. Registrar auditoría legal con timestamp, IP y dispositivo
         const consentRecord = await recordLegalConsent({
@@ -232,23 +290,19 @@ export const AuthScreen: React.FC<Props> = ({
     }
   };
 
-  // Fondo con degradado ambiental motorsport
-  const bgTop = isDark ? 'rgba(7, 18, 38, 0.45)' : 'rgba(235, 243, 255, 0.40)';
-  const bgMid = isDark ? 'rgba(10, 16, 28, 0.92)' : 'rgba(255, 255, 255, 0.94)';
-  const bgBottom = isDark ? 'rgba(17, 19, 25, 0.99)' : 'rgba(245, 245, 247, 0.99)';
+  // Fondo con degradado arquitectónico corporativo Empresas Del Valle
+  const bgColors = isDark 
+    ? (['#0a2558', '#001136', '#000b21'] as const)
+    : (['#f9f9f9', '#f3f3f4', '#eeeeee'] as const);
 
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ImageBackground 
-        source={require('../../../assets/images/fondo_login.jpg')} 
-        style={{ flex: 1, width: '100%', height: '100%' }}
-        resizeMode="cover"
-      >
+      <View style={{ flex: 1, backgroundColor: tokens.surface }}>
         <LinearGradient
-          colors={[bgTop, bgMid, bgBottom]}
+          colors={bgColors}
           style={{ flex: 1 }}
         >
           <ScrollView 
@@ -261,36 +315,36 @@ export const AuthScreen: React.FC<Props> = ({
               {isDesktop && (
                 <View style={styles.desktopHeroColumn}>
                   <View style={styles.brandHeroBadge}>
-                    <MaterialCommunityIcons name="engine" size={26} color="#00e3fd" />
-                    <Text style={styles.brandHeroBadgeText}>PRECISIÓN MOTORSPORT</Text>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#bdd2fe' }} />
+                    <Text style={styles.brandHeroBadgeText}>RED CORPORATIVA</Text>
                   </View>
-                  <Text style={[styles.desktopMainHeading, { color: isDark ? '#ffffff' : '#111319' }]}>
-                    GARAGE
+                  <Text style={[styles.desktopMainHeading, { color: isDark ? '#ffffff' : '#001136' }]}>
+                    EMPRESAS DEL VALLE
                   </Text>
-                  <Text style={[styles.desktopSubHeading, { color: '#00e3fd' }]}>
-                    TELEMETRÍA & GESTIÓN EN LA NUBE
+                  <Text style={[styles.desktopSubHeading, { color: isDark ? '#bdd2fe' : '#4b5f84' }]}>
+                    EDV MONITOR • MONITOREO DE PLANTAS ELÉCTRICAS
                   </Text>
                   <Text style={[styles.desktopDesc, { color: colors.onSurfaceVariant }]}>
-                    Plataforma técnica de precisión para motociclistas. Monitorea desgaste de componentes, activa protocolos SOS automatizados con GPS y custodia tu wallet digital de documentos.
+                    Construyendo el futuro hoy. Plataforma técnica corporativa para la supervisión y control de horómetros en tiempo real, registro automatizado de cortes eléctricos y programación predictiva de servicios técnicos.
                   </Text>
 
                   <View style={styles.heroFeatureList}>
                     <View style={styles.heroFeatureRow}>
-                      <MaterialIcons name="speed" size={22} color="#00e3fd" />
+                      <MaterialIcons name="speed" size={22} color={tokens.secondary} />
                       <Text style={[styles.heroFeatureText, { color: colors.onSurface }]}>
-                        Telemetría y ciclos de desgaste (aceite, frenos, cadena, cauchos)
+                        Telemetría y control de horómetros de plantas eléctricas
                       </Text>
                     </View>
                     <View style={styles.heroFeatureRow}>
-                      <MaterialIcons name="warning" size={22} color="#ffb4ab" />
+                      <MaterialCommunityIcons name="flash-alert" size={22} color="#F59E0B" />
                       <Text style={[styles.heroFeatureText, { color: colors.onSurface }]}>
-                        Protocolo SOS con despacho automatizado de coordenadas
+                        Bitácora y alerta automatizada de cortes y reposición de red
                       </Text>
                     </View>
                     <View style={styles.heroFeatureRow}>
-                      <MaterialIcons name="account-balance-wallet" size={22} color="#4169E1" />
+                      <MaterialIcons name="verified-user" size={22} color={tokens.secondary} />
                       <Text style={[styles.heroFeatureText, { color: colors.onSurface }]}>
-                        Digital Wallet para SOAT, Licencia y Carnet de circulación
+                        Conectividad cifrada TLS 1.3 con control de operadores
                       </Text>
                     </View>
                   </View>
@@ -312,33 +366,47 @@ export const AuthScreen: React.FC<Props> = ({
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 16,
-                    backgroundColor: isDark ? 'rgba(0, 227, 253, 0.08)' : 'rgba(65, 105, 225, 0.08)',
+                    backgroundColor: isDark ? 'rgba(189, 210, 254, 0.12)' : 'rgba(0, 17, 54, 0.08)',
                     borderWidth: 0.8,
-                    borderColor: isDark ? 'rgba(0, 227, 253, 0.3)' : 'rgba(65, 105, 225, 0.25)',
+                    borderColor: isDark ? 'rgba(189, 210, 254, 0.3)' : 'rgba(0, 17, 54, 0.2)',
                   }}
                   activeOpacity={0.7}
                 >
-                  <MaterialIcons name="arrow-back" size={16} color={isDark ? '#00e3fd' : '#4169E1'} />
-                  <Text style={{ fontFamily: F.bold, color: isDark ? '#00e3fd' : '#4169E1', fontSize: 12 }}>
+                  <MaterialIcons name="arrow-back" size={16} color={isDark ? '#bdd2fe' : '#001136'} />
+                  <Text style={{ fontFamily: F.bold, color: isDark ? '#bdd2fe' : '#001136', fontSize: 12 }}>
                     Volver a Portada
                   </Text>
                 </TouchableOpacity>
               )}
 
-              {/* BRAND HEADER & LOGO */}
-              <View style={{ alignItems: 'center', marginBottom: 22 }}>
-                <View style={[styles.logoBadge, { backgroundColor: tokens.surfaceCard, borderColor: tokens.outline }]}>
-                  <MaterialCommunityIcons name="engine" size={40} color={tokens.secondary} />
+              {/* BRAND HEADER & LOGO - EMPRESAS DEL VALLE */}
+              <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                {/* Prestige Micro-Badge */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, opacity: 0.9 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.primary }} />
+                  <Text style={{ fontSize: 10, letterSpacing: 1.5, color: tokens.primary, fontFamily: F.bold, textTransform: 'uppercase' }}>
+                    Red Corporativa
+                  </Text>
                 </View>
-                <Text style={{ fontSize: 32, fontFamily: F.extrabold, color: colors.onSurface, letterSpacing: -0.6 }}>
-                  GARAGE
+
+                {/* Logo Empresas del Valle adaptativo al tema */}
+                <View style={{ height: 85, justifyContent: 'center', alignItems: 'center', marginBottom: 6 }}>
+                  <Image 
+                    source={isDark ? require('../../../assets/images/LOGO-EMPRESASDELVALLE.png') : require('../../../assets/images/EMPRESASDELVALLE-AZUL.png')}
+                    style={{ width: 180, height: 75 }}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <Text style={{ fontSize: 13, fontFamily: F.bold, color: tokens.primary, letterSpacing: 1.8, textTransform: 'uppercase', marginTop: 2 }}>
+                  EDV MONITOR
                 </Text>
-                <Text style={{ fontSize: 13, fontFamily: F.medium, color: colors.onSurfaceVariant, marginTop: 4, textAlign: 'center' }}>
-                  {isLogin ? 'Tu garaje inteligente en la nube' : 'Crea tu cuenta de piloto'}
+                <Text style={{ fontSize: 12, fontFamily: F.medium, color: colors.onSurfaceVariant, marginTop: 4, textAlign: 'center' }}>
+                  {isLogin ? 'Monitoreo de Plantas Eléctricas en la Nube' : 'Registro de Técnicos y Operadores'}
                 </Text>
               </View>
 
-              {/* SEGMENTED SWITCHER: INICIAR SESIÓN / REGISTRARSE (Estilo Pinterest Awsmd) */}
+              {/* SEGMENTED SWITCHER: INICIAR SESIÓN / REGISTRARSE */}
               <View style={[styles.segmentedBar, { backgroundColor: tokens.surfaceContainer, borderColor: tokens.outline }]}>
                 <TouchableOpacity
                   onPress={() => {
@@ -353,7 +421,7 @@ export const AuthScreen: React.FC<Props> = ({
                 >
                   <Text style={[
                     styles.segmentText,
-                    { fontFamily: F.bold, color: isLogin ? '#FFFFFF' : colors.onSurfaceVariant }
+                    { fontFamily: F.bold, color: isLogin ? (isDark ? '#092332' : '#FFFFFF') : colors.onSurfaceVariant }
                   ]}>
                     INICIAR SESIÓN
                   </Text>
@@ -369,7 +437,7 @@ export const AuthScreen: React.FC<Props> = ({
                 >
                   <Text style={[
                     styles.segmentText,
-                    { fontFamily: F.bold, color: !isLogin ? '#FFFFFF' : colors.onSurfaceVariant }
+                    { fontFamily: F.bold, color: !isLogin ? (isDark ? '#092332' : '#FFFFFF') : colors.onSurfaceVariant }
                   ]}>
                     REGISTRARSE
                   </Text>
@@ -385,7 +453,7 @@ export const AuthScreen: React.FC<Props> = ({
                     </Text>
                     <TextInput 
                       style={[styles.input, { backgroundColor: tokens.surfaceContainer, borderColor: tokens.outline, color: colors.onSurface, fontFamily: F.medium }]} 
-                      placeholder="piloto@correo.com" 
+                      placeholder="operador@empresa.com" 
                       placeholderTextColor={colors.onSurfaceVariant} 
                       value={email} 
                       onChangeText={setEmail} 
@@ -395,24 +463,9 @@ export const AuthScreen: React.FC<Props> = ({
                   </View>
 
                   <View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={[styles.fieldLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold, marginBottom: 0 }]}>
-                        CONTRASEÑA
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setForgotPasswordStep('request');
-                          setShowForgotPasswordModal(true);
-                        }}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined }}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialIcons name="vpn-key" size={13} color={tokens.secondary} />
-                        <Text style={{ fontSize: 11, color: tokens.secondary, fontFamily: F.bold, textDecorationLine: 'underline' }}>
-                          ¿Olvidaste tu clave?
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={[styles.fieldLabel, { color: colors.onSurfaceVariant, fontFamily: F.semibold }]}>
+                      CONTRASEÑA
+                    </Text>
 
                     <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.surfaceContainer, borderColor: tokens.outline, paddingHorizontal: 14 }]}>
                       <TextInput 
@@ -436,24 +489,9 @@ export const AuthScreen: React.FC<Props> = ({
                         />
                       </TouchableOpacity>
                     </View>
-
-                    {/* BADGE DESTACADO: ¿OLVIDASTE TU CONTRASEÑA? */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        setForgotPasswordStep('request');
-                        setShowForgotPasswordModal(true);
-                      }}
-                      style={styles.forgotPasswordBtn}
-                      activeOpacity={0.7}
-                    >
-                      <MaterialIcons name="lock-reset" size={16} color={tokens.secondary} />
-                      <Text style={[styles.forgotPasswordText, { color: tokens.secondary, fontFamily: F.bold }]}>
-                        ¿Olvidaste tu contraseña? Restablecer acceso
-                      </Text>
-                    </TouchableOpacity>
                   </View>
 
-                  {/* Botón Ingresar */}
+                    {/* Botón Ingresar */}
                   <TouchableOpacity 
                     style={[styles.actionBtn, { backgroundColor: tokens.primary, marginTop: 8 }]} 
                     onPress={handleAuth} 
@@ -461,13 +499,13 @@ export const AuthScreen: React.FC<Props> = ({
                     activeOpacity={0.85}
                   >
                     {loading ? (
-                      <ActivityIndicator color="#FFFFFF" />
+                      <ActivityIndicator color={isDark ? '#001136' : '#FFFFFF'} />
                     ) : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={[styles.btnText, { color: '#FFFFFF', fontFamily: F.extrabold }]}>
-                          INGRESAR AL GARAJE
+                        <Text style={[styles.btnText, { color: isDark ? '#001136' : '#FFFFFF', fontFamily: F.extrabold }]}>
+                          ACCEDER A LA PLATAFORMA
                         </Text>
-                        <MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" />
+                        <MaterialIcons name="arrow-forward" size={18} color={isDark ? '#001136' : '#FFFFFF'} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -475,7 +513,7 @@ export const AuthScreen: React.FC<Props> = ({
                   {/* Enlaces Legales en Acceso */}
                   <View style={{ marginTop: 14, alignItems: 'center', gap: 4 }}>
                     <Text style={{ fontSize: 11, fontFamily: F.medium, color: colors.onSurfaceVariant, textAlign: 'center' }}>
-                      Al acceder a GARAGE, aceptas el marco legal aplicable:
+                      Al acceder a la plataforma de Empresas Del Valle, aceptas el marco legal aplicable:
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <TouchableOpacity onPress={() => { setSelectedLegalDoc('terms'); setShowLegalModal(true); }}>
@@ -532,7 +570,7 @@ export const AuthScreen: React.FC<Props> = ({
 
                     <View style={[styles.stepConnector, { backgroundColor: registerStep > 1 ? tokens.primary : tokens.outline }]} />
 
-                    {/* Paso 2: Piloto */}
+                    {/* Paso 2: Operador */}
                     <TouchableOpacity 
                       onPress={() => {
                         if (email && password.length >= 6) setRegisterStep(2);
@@ -554,7 +592,7 @@ export const AuthScreen: React.FC<Props> = ({
                         styles.stepTabText, 
                         { fontFamily: F.bold, color: registerStep === 2 ? colors.onSurface : colors.onSurfaceVariant }
                       ]}>
-                        Piloto
+                        Operador
                       </Text>
                     </TouchableOpacity>
 
@@ -607,7 +645,7 @@ export const AuthScreen: React.FC<Props> = ({
                           </Text>
                           <TextInput 
                             style={[styles.input, { backgroundColor: tokens.surfaceContainer, borderColor: tokens.outline, color: colors.onSurface, fontFamily: F.medium }]} 
-                            placeholder="piloto@correo.com" 
+                            placeholder="operador@empresa.com" 
                             placeholderTextColor={colors.onSurfaceVariant} 
                             value={email} 
                             onChangeText={setEmail} 
@@ -652,22 +690,22 @@ export const AuthScreen: React.FC<Props> = ({
                           activeOpacity={0.85}
                         >
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={[styles.btnText, { color: '#FFFFFF', fontFamily: F.extrabold }]}>
-                              CONTINUAR A DATOS DEL PILOTO
+                            <Text style={[styles.btnText, { color: isDark ? '#001136' : '#FFFFFF', fontFamily: F.extrabold }]}>
+                              CONTINUAR A DATOS DEL OPERADOR
                             </Text>
-                            <MaterialIcons name="chevron-right" size={20} color="#FFFFFF" />
+                            <MaterialIcons name="chevron-right" size={20} color={isDark ? '#001136' : '#FFFFFF'} />
                           </View>
                         </TouchableOpacity>
                       </View>
                     )}
 
-                    {/* PASO 2: DATOS DEL PILOTO */}
+                    {/* PASO 2: DATOS DEL OPERADOR */}
                     {registerStep === 2 && (
                       <View style={{ gap: 12 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                           <MaterialIcons name="person" size={18} color={tokens.secondary} />
                           <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 13, textTransform: 'uppercase' }}>
-                            Paso 2: Carnet & Datos Personales
+                            Paso 2: Carnet & Datos del Operador
                           </Text>
                         </View>
 
@@ -822,7 +860,7 @@ export const AuthScreen: React.FC<Props> = ({
             </View>
           </ScrollView>
         </LinearGradient>
-      </ImageBackground>
+      </View>
 
       {/* MODAL VISOR DE DOCUMENTOS LEGALES (TÉRMINOS, PRIVACIDAD, COOKIES) */}
       <LegalDocModal
@@ -886,7 +924,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   brandHeroBadgeText: {
-    color: '#00e3fd',
+    color: '#bdd2fe',
     fontSize: 11,
     fontFamily: 'Montserrat_700Bold',
     letterSpacing: 2,

@@ -95,7 +95,7 @@ export default function Root({ children }: PropsWithChildren) {
                 height: 100%;
                 margin: 0;
                 padding: 0;
-                background-color: #111319;
+                background-color: #000b21;
                 font-family: Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               }
               /* Enforce Montserrat on React Native Web text & inputs */
@@ -108,7 +108,7 @@ export default function Root({ children }: PropsWithChildren) {
             `,
           }}
         />
-        <title>GARAGE • Gestión Inteligente de Motocicletas</title>
+        <title>Empresas Del Valle • EDV Monitor</title>
       </head>
       <body>{children}</body>
     </html>

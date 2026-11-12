@@ -1,24 +1,25 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { MotoSpecs } from '../../data/specs';
+import { GeneratorSpecs, getGeneratorSpecs } from '../../data/specs';
 import { useTheme } from '../context/ThemeContext';
-import { MOTO_CATALOG, VEHICLE_CATALOG } from '../../data/catalog';
-import { isCar } from '../../domain/entities/Moto';
+import { useMyMoto } from '../context/MotoContext';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  myMoto: any;
-  specs: MotoSpecs | null;
+  myMoto?: any;
+  specs?: GeneratorSpecs | null;
 }
 
-export const TechnicalSheetModal: React.FC<Props> = ({ visible, onClose, myMoto, specs }) => {
-  const { colors, mode } = useTheme();
+export const TechnicalSheetModal: React.FC<Props> = ({ visible, onClose, myMoto: propGen, specs: propSpecs }) => {
+  const { colors } = useTheme();
+  const { activeGenerator } = useMyMoto();
 
-  if (!myMoto || !specs) return null;
+  const currentGen = propGen || activeGenerator;
+  const genSpecs = propSpecs || (currentGen ? getGeneratorSpecs(currentGen.brand, currentGen.model) : null);
 
-  const isVehicleCar = isCar(myMoto);
+  if (!currentGen) return null;
 
   const F = {
     bold: 'Montserrat_700Bold',
@@ -27,19 +28,13 @@ export const TechnicalSheetModal: React.FC<Props> = ({ visible, onClose, myMoto,
     regular: 'Montserrat_400Regular',
   };
 
-  // Find vehicle image from catalog if available
-  const catMoto = VEHICLE_CATALOG.find(
-    m => m.brand.toLowerCase() === myMoto.brand.toLowerCase() && m.model.toLowerCase() === myMoto.model.toLowerCase()
-  ) || VEHICLE_CATALOG.find(
-    m => m.brand.toLowerCase() === myMoto.brand.toLowerCase()
-  );
-  const imageSource = myMoto.imageUrl ? { uri: myMoto.imageUrl } : (catMoto?.imageRes || null);
+  const imageSource = currentGen.catalogImageRes || (currentGen.imageUrl ? { uri: currentGen.imageUrl } : null);
 
   const SpecItem = ({ label, value, icon, color = colors.onSurface }: { label: string; value?: string; icon: string; color?: string }) => {
     if (!value) return null;
     return (
       <View style={[styles.specRow, { borderBottomColor: colors.outlineVariant }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', width: '44%', paddingRight: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', width: '48%', paddingRight: 8 }}>
           <MaterialIcons name={icon as any} size={17} color={colors.primary} style={{ marginRight: 8 }} />
           <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12.5 }} numberOfLines={2}>
             {label}
@@ -62,124 +57,65 @@ export const TechnicalSheetModal: React.FC<Props> = ({ visible, onClose, myMoto,
   );
 
   return (
-    <Modal visible={visible} transparent={true} animationType="slide">
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' }}>
-        <View style={[styles.sheetContainer, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-          {/* Sheet Handle */}
-          <View style={[styles.sheetHandle, { backgroundColor: colors.outlineVariant }]} />
-
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+          
           {/* Header */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.outlineVariant }]}>
             <View>
-              <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 20 }}>Ficha Técnica Oficial</Text>
-              <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
-                Especificaciones verificadas del fabricante
+              <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 18 }}>
+                Ficha Técnica de la Planta
+              </Text>
+              <Text style={{ fontFamily: F.medium, color: colors.onSurfaceVariant, fontSize: 13 }}>
+                {currentGen.brand} {currentGen.model}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: colors.surfaceContainer }]}>
-              <MaterialIcons name="close" size={22} color={colors.onSurface} />
+            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: colors.surfaceContainer }]}>
+              <MaterialIcons name="close" size={20} color={colors.onSurface} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-            
-            {/* Top Showcase Card */}
-            <View style={[styles.heroCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
-              {imageSource ? (
-                <Image source={imageSource} style={styles.bikeImage} resizeMode="contain" />
-              ) : (
-                <View style={{ height: 110, justifyContent: 'center', alignItems: 'center' }}>
-                  <MaterialIcons name={isVehicleCar ? "directions-car" : "two-wheeler"} size={60} color={colors.onSurfaceVariant} />
-                </View>
-              )}
-              <View style={{ alignItems: 'center', marginTop: 8 }}>
-                <Text style={{ fontFamily: F.bold, color: colors.onSurface, fontSize: 18 }}>
-                  {myMoto.brand} {myMoto.model}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <View style={[styles.pill, { backgroundColor: colors.surfaceContainerHigh }]}>
-                    <Text style={{ fontFamily: F.semibold, color: colors.secondary, fontSize: 11 }}>Año {myMoto.year}</Text>
-                  </View>
-                  <View style={[styles.pill, { backgroundColor: colors.surfaceContainerHigh }]}>
-                    <Text style={{ fontFamily: F.semibold, color: colors.onSurfaceVariant, fontSize: 11 }}>Placa: {myMoto.plate || 'S/N'}</Text>
-                  </View>
-                  <View style={[styles.pill, { backgroundColor: 'rgba(48,209,88,0.18)' }]}>
-                    <Text style={{ fontFamily: F.bold, color: '#30D158', fontSize: 11 }}>{specs.displacement || (isVehicleCar ? '1.8L' : '150 cc')}</Text>
-                  </View>
-                </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+            {/* Generator Hero Image */}
+            {imageSource && (
+              <View style={[styles.imageCard, { backgroundColor: colors.surfaceContainer }]}>
+                <Image source={imageSource} style={styles.vehicleImage} resizeMode="contain" />
               </View>
-            </View>
+            )}
 
-            {/* SECCIÓN 1: MOTOR Y RENDIMIENTO */}
-            <SectionHeader title="Motor & Rendimiento" icon="engine" />
-            <View style={[styles.specGroupCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
-              <SpecItem label="Tipo de Motor" value={specs.engineType} icon="settings" />
-              <SpecItem label="Cilindrada" value={specs.displacement} icon="speed" />
-              <SpecItem label="Potencia" value={specs.hp} icon="flash-on" color={colors.primary} />
-              <SpecItem label="Torque" value={specs.torque} icon="offline-bolt" />
-              <SpecItem label="Refrigeración" value={specs.cooling} icon="ac-unit" />
-            </View>
+            {/* SECCIÓN 1: POTENCIA Y GENERACIÓN ELÉCTRICA */}
+            <SectionHeader title="Generación y Potencia" icon="flash" />
+            <SpecItem label="Capacidad Standby" value={genSpecs?.powerKva || `${currentGen.capacityKva} kVA`} icon="bolt" color="#F59E0B" />
+            <SpecItem label="Potencia Activa" value={genSpecs?.powerKw || `${Math.round(currentGen.capacityKva * 0.8)} kW`} icon="offline-bolt" />
+            <SpecItem label="Voltaje / Frecuencia" value={`${genSpecs?.voltage || '127/220V Trifásico'} • ${genSpecs?.frequency || '60 Hz'}`} icon="electrical-services" />
+            <SpecItem label="Régimen de Giro" value={genSpecs?.rpm || '1800 RPM'} icon="speed" />
+            <SpecItem label="Alternador" value={genSpecs?.alternator || 'Stamford Brushless con AVR'} icon="rotate-right" />
+            <SpecItem label="Panel de Control" value={genSpecs?.controlPanel || 'DSE / Deep Sea Automático ATS'} icon="settings-remote" />
 
-            {/* SECCIÓN 2: CAPACIDADES Y FLUIDOS */}
-            <SectionHeader title="Capacidades & Fluidos Oficiales" icon="oil" />
-            <View style={[styles.specGroupCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
-              <SpecItem label="Capacidad de Aceite" value={specs.oilCapacity} icon="opacity" color={colors.tertiary} />
-              <SpecItem label="Aceite Recomendado" value={specs.oilTypeRecommended} icon="verified" color={colors.primary} />
-              <SpecItem label="Refrigerante (Coolant)" value={specs.coolantCapacity} icon="invert-colors" color={colors.primary} />
-              <SpecItem label="Tanque de Gasolina" value={specs.fuelCapacity} icon="local-gas-station" color={colors.secondary} />
-              <SpecItem label="Intervalo de Aceite" value={specs.maintenanceIntervalOil} icon="update" color="#FF9500" />
-            </View>
+            {/* SECCIÓN 2: MOTOR Y FLUIDOS */}
+            <SectionHeader title="Motor y Consumo" icon="engine" />
+            <SpecItem label="Marca del Motor" value={genSpecs?.engineBrand || 'Motor Industrial Diésel'} icon="branding-watermark" />
+            <SpecItem label="Cilindrada" value={genSpecs?.displacement || '4 a 6 Cilindros Turbo'} icon="layers" />
+            <SpecItem label="Combustible" value={genSpecs?.fuelType || currentGen.fuelType.toUpperCase()} icon="local-gas-station" color={colors.primary} />
+            <SpecItem label="Capacidad de Tanque" value={genSpecs?.fuelCapacity || '250 Litros'} icon="battery-charging-full" />
+            <SpecItem label="Consumo Estimado" value={genSpecs?.fuelConsumption || '18.5 L/h al 75%'} icon="opacity" />
+            <SpecItem label="Capacidad de Aceite" value={genSpecs?.oilCapacity || '16.4 Litros'} icon="format-color-fill" />
+            <SpecItem label="Aceite Recomendado" value={genSpecs?.oilTypeRecommended || '15W-40 CI-4 / CJ-4 Heavy Duty'} icon="invert-colors" color="#10B981" />
+            <SpecItem label="Refrigerante" value={genSpecs?.coolantCapacity || '24.5 Litros (50/50)'} icon="ac-unit" />
+            <SpecItem label="Batería de Arranque" value={genSpecs?.battery || '12V / 24V Heavy Duty AGM'} icon="battery-std" />
 
-            {/* SECCIÓN 3: RUEDAS Y NEUMÁTICOS */}
-            <SectionHeader title="Ruedas & Neumáticos (PSI)" icon="tire" />
-            <View style={[styles.specGroupCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
-              <SpecItem label={isVehicleCar ? "Neumáticos Delanteros" : "Caucho Delantero"} value={specs.frontTireSize} icon="radio-button-checked" />
-              <SpecItem label="Presión Delantera" value={specs.frontTirePressure} icon="compress" color={colors.secondary} />
-              <SpecItem label={isVehicleCar ? "Neumáticos Traseros" : "Caucho Trasero"} value={specs.rearTireSize} icon="radio-button-checked" />
-              <SpecItem label="Presión Trasera" value={specs.rearTirePressure} icon="compress" color={colors.secondary} />
-            </View>
+            {/* SECCIÓN 3: INTERVALOS DE SERVICIO */}
+            <SectionHeader title="Intervalos de Mantenimiento" icon="calendar-clock" />
+            <SpecItem label="Cambio de Aceite" value={genSpecs?.maintenanceIntervalOil || `Cada ${currentGen.serviceIntervalHours} Horas`} icon="alarm" color="#10B981" />
+            <SpecItem label="Filtros (Aceite y Trampa)" value={genSpecs?.maintenanceIntervalFilters || `Cada ${currentGen.serviceIntervalHours} Horas`} icon="filter-alt" />
 
-            {/* SECCIÓN 4: TRANSMISIÓN Y CHASIS */}
-            <SectionHeader title="Transmisión, Chasis & Frenos" icon={isVehicleCar ? "car-cog" : "motorbike"} />
-            <View style={[styles.specGroupCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
-              <SpecItem label="Transmisión" value={specs.transmission} icon="compare-arrows" />
-              {specs.timingBeltType && (
-                <SpecItem label="Correa Distribución" value={specs.timingBeltType} icon="sync" color={colors.error} />
-              )}
-              {specs.maintenanceIntervalTimingBelt && (
-                <SpecItem label="Intervalo Correa" value={specs.maintenanceIntervalTimingBelt} icon="update" color="#FF9500" />
-              )}
-              {specs.chainType && (
-                <SpecItem label="Cadena de Arrastre" value={specs.chainType} icon="link" />
-              )}
-              <SpecItem label="Freno Delantero" value={specs.brakesFront} icon="pan-tool" />
-              <SpecItem label="Freno Trasero" value={specs.brakesRear} icon="pan-tool" />
-              {specs.suspensionFront && (
-                <SpecItem label="Suspensión Delantera" value={specs.suspensionFront} icon="build" />
-              )}
-              {specs.suspensionRear && (
-                <SpecItem label="Suspensión Trasera" value={specs.suspensionRear} icon="build" />
-              )}
-              <SpecItem label="Peso en Seco" value={specs.weight} icon="fitness-center" />
-            </View>
-
-            {/* SECCIÓN 5: SISTEMA ELÉCTRICO & EQUIPAMIENTO */}
-            <SectionHeader title="Sistema Eléctrico & Confort" icon="lightning-bolt" />
-            <View style={[styles.specGroupCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
-              <SpecItem label="Bujía de Encendido" value={specs.sparkPlug} icon="wb-incandescent" color={colors.tertiary} />
-              <SpecItem label="Batería Oficial" value={specs.battery} icon="battery-charging-full" />
-              {specs.dimensions && (
-                <SpecItem label="Dimensiones" value={specs.dimensions} icon="straighten" />
-              )}
-              {specs.trunkCapacity && (
-                <SpecItem label="Capacidad de Baúl" value={specs.trunkCapacity} icon="luggage" />
-              )}
-              {specs.equipment && (
-                <SpecItem label="Equipamiento" value={specs.equipment} icon="star" color={colors.primary} />
-              )}
-            </View>
-
+            {/* Ubicación y Serie */}
+            <SectionHeader title="Datos de Instalación" icon="map-marker" />
+            <SpecItem label="Ubicación Física" value={currentGen.location || 'Sala de Máquinas'} icon="place" />
+            <SpecItem label="Número de Serie" value={currentGen.serialNumber || 'BPG-2024-C125'} icon="tag" />
           </ScrollView>
+
         </View>
       </View>
     </Modal>
@@ -187,54 +123,46 @@ export const TechnicalSheetModal: React.FC<Props> = ({ visible, onClose, myMoto,
 };
 
 const styles = StyleSheet.create({
-  sheetContainer: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 20,
-    maxHeight: '92%',
-    borderWidth: 0.5,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
   },
-  sheetHandle: {
-    width: 38,
-    height: 5,
-    borderRadius: 2.5,
-    alignSelf: 'center',
-    marginBottom: 14,
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    maxHeight: '88%',
   },
-  closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: 'center',
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
   },
-  heroCard: {
+  closeButton: {
+    padding: 6,
     borderRadius: 20,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 0.5,
-    marginBottom: 6,
   },
-  bikeImage: {
+  imageCard: {
     width: '100%',
-    height: 120,
+    height: 180,
+    borderRadius: 16,
+    marginVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  specGroupCard: {
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 2,
-    borderWidth: 0.5,
+  vehicleImage: {
+    width: '90%',
+    height: '90%',
   },
   specRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
   },
 });

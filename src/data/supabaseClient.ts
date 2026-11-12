@@ -5,8 +5,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { ENV } from '../constants/config';
 
-const SUPABASE_URL = ENV.SUPABASE_URL;
-const SUPABASE_ANON_KEY = ENV.SUPABASE_ANON_KEY;
+const SUPABASE_URL = ENV.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = ENV.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Limpiar sesiones obsoletas de otros proyectos en localStorage de web para evitar 401
+if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+  try {
+    const projectRef = SUPABASE_URL ? SUPABASE_URL.split('//')[1]?.split('.')[0] : '';
+    Object.keys(window.localStorage).forEach(key => {
+      if (key.startsWith('sb-') && projectRef && !key.includes(projectRef)) {
+        window.localStorage.removeItem(key);
+      }
+    });
+  } catch {}
+}
+
+if (__DEV__) {
+  console.log(`[Supabase] Conectado a: ${SUPABASE_URL} | Key prefijo: ${SUPABASE_ANON_KEY.substring(0, 20)}...`);
+}
 
 const safeStorage = {
   getItem: async (key: string): Promise<string | null> => {
