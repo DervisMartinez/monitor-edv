@@ -1,15 +1,23 @@
 import 'react-native-url-polyfill/auto';
 
 // Node.js SSR / Build-time WebSocket guard (previene errores en Node < 22 durante expo export)
-if (typeof window === 'undefined' && typeof globalThis.WebSocket === 'undefined') {
-  try {
-    globalThis.WebSocket = class MockWebSocket {
-      addEventListener() {}
-      removeEventListener() {}
-      send() {}
-      close() {}
-    } as any;
-  } catch {}
+class MockWebSocket {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSING = 2;
+  static readonly CLOSED = 3;
+  readonly readyState = 3;
+  addEventListener() {}
+  removeEventListener() {}
+  send() {}
+  close() {}
+}
+
+if (typeof window === 'undefined') {
+  const g = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+  if (!g.WebSocket) {
+    g.WebSocket = MockWebSocket;
+  }
 }
 
 import { createClient } from '@supabase/supabase-js';
@@ -73,4 +81,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web',
   },
+  ...(typeof window === 'undefined'
+    ? {
+        realtime: {
+          transport: MockWebSocket as any,
+        },
+      }
+    : {}),
 });
