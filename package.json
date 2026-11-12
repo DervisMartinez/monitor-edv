@@ -1,5 +1,5 @@
 {
-  "name": "moto-app",
+  "name": "edv-monitor",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
@@ -41,8 +41,6 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "dotenv": "^16.4.7",
-    "eslint": "^9.0.0",
-    "eslint-config-expo": "~57.0.2",
     "pg": "^8.23.1",
     "typescript": "~6.0.3"
   },

@@ -1,4 +1,17 @@
 import 'react-native-url-polyfill/auto';
+
+// Node.js SSR / Build-time WebSocket guard (previene errores en Node < 22 durante expo export)
+if (typeof window === 'undefined' && typeof globalThis.WebSocket === 'undefined') {
+  try {
+    globalThis.WebSocket = class MockWebSocket {
+      addEventListener() {}
+      removeEventListener() {}
+      send() {}
+      close() {}
+    } as any;
+  } catch {}
+}
+
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
