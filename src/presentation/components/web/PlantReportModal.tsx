@@ -123,8 +123,8 @@ export const PlantReportModal: React.FC<Props> = ({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
                 <View style={styles.headerLogoBox}>
                   <Image 
-                    source={require('../../../../assets/images/LOGO-EMPRESASDELVALLE.png')} 
-                    style={{ width: '85%', height: '85%' }}
+                    source={require('../../../../assets/images/EMPRESASDELVALLE-AZUL.png')} 
+                    style={{ width: '90%', height: '90%' }}
                     resizeMode="contain"
                   />
                 </View>

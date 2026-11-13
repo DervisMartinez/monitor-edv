@@ -21,8 +21,14 @@ import { Generator, FuelType, GeneratorStatus, Company, Department, AppUser, Pow
 import { GENERATOR_CATALOG } from '../../../data/catalog';
 import { PlantReportModal } from './PlantReportModal';
 import { ImageUploader } from './ImageUploader';
+import { AnalyticsDashboardSection } from './AnalyticsDashboardSection';
+import {
+  computeFleetAnalytics,
+  formatMinutesDuration,
+  formatSignedPct,
+} from '../../../domain/analytics/fleetAnalytics';
 
-type AdminTab = 'overview' | 'users' | 'generators' | 'companies' | 'horometers' | 'outages' | 'services';
+type AdminTab = 'overview' | 'analytics' | 'users' | 'generators' | 'companies' | 'horometers' | 'outages' | 'services';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -209,13 +215,29 @@ export const AdminDashboard: React.FC = () => {
     regular: 'Montserrat_400Regular',
   };
 
+  // Live Fleet Statistical Summary (real Supabase telemetry)
+  const fleetOverviewAnalytics = useMemo(
+    () =>
+      computeFleetAnalytics({
+        generators,
+        horometerLogs,
+        outages,
+        services,
+        companies,
+        departments,
+        appUsers,
+        period: 'all',
+        companyFilterId: 'all',
+      }),
+    [generators, horometerLogs, outages, services, companies, departments, appUsers]
+  );
+
   // KPI Computations
   const stats = useMemo(() => {
     const totalGens = generators.length;
-    const totalHoursFleet = generators.reduce((acc, g) => acc + g.currentHours, 0);
-    const totalOutagesCount = outages.length;
-    const totalBlackoutMinutes = outages.reduce((acc, o) => acc + (o.durationMinutes || 0), 0);
-    const totalBlackoutHours = (totalBlackoutMinutes / 60).toFixed(1);
+    const totalHoursFleet = fleetOverviewAnalytics.overview.totalHorometerHours;
+    const totalOutagesCount = fleetOverviewAnalytics.overview.outagesCount;
+    const totalBlackoutHours = (fleetOverviewAnalytics.overview.totalOutageMinutes / 60).toFixed(1);
     const totalUsersCount = appUsers.length;
     const totalServicesCount = services.length;
 
@@ -227,7 +249,7 @@ export const AdminDashboard: React.FC = () => {
       totalUsersCount,
       totalServicesCount,
     };
-  }, [generators, outages, appUsers, services]);
+  }, [generators.length, fleetOverviewAnalytics, appUsers.length, services.length]);
 
   // Filtered generators by company, department and operational status
   const filteredGenerators = useMemo(() => {
@@ -737,6 +759,7 @@ export const AdminDashboard: React.FC = () => {
 
   const NAV_ITEMS = [
     { id: 'overview', label: 'Resumen General', icon: 'dashboard' },
+    { id: 'analytics', label: 'Estadísticas y Comparativas', icon: 'bar-chart' },
     { id: 'users', label: 'Crear / Gestionar Usuarios', icon: 'group-add' },
     { id: 'generators', label: 'Plantas Eléctricas', icon: 'precision-manufacturing' },
     { id: 'companies', label: 'Empresas & Dptos', icon: 'domain' },
@@ -764,11 +787,24 @@ export const AdminDashboard: React.FC = () => {
             </TouchableOpacity>
           )}
 
-          {/* Logo Badge */}
-          <View style={[styles.logoBadge, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]}>
-            <Image 
-              source={require('../../../../assets/images/LOGO-EMPRESASDELVALLE.png')} 
-              style={{ width: '85%', height: '85%' }}
+          {/* Logo Badge (tema claro: azul sobre blanco | tema oscuro: blanco sobre azul marino) */}
+          <View
+            style={[
+              styles.logoBadge,
+              {
+                backgroundColor: isDark ? '#0a2558' : '#FFFFFF',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.32)' : 'rgba(31, 46, 84, 0.16)',
+              },
+            ]}
+          >
+            <Image
+              source={
+                isDark
+                  ? require('../../../../assets/images/LOGO-EMPRESASDELVALLE.png')
+                  : require('../../../../assets/images/EMPRESASDELVALLE-AZUL.png')
+              }
+              style={{ width: '90%', height: '90%' }}
               resizeMode="contain"
             />
           </View>
@@ -935,11 +971,11 @@ export const AdminDashboard: React.FC = () => {
                     <Text style={{ fontFamily: F.semibold, color: textSecondary, fontSize: 11 }}>PLANTAS MONITOREADAS</Text>
                     <MaterialCommunityIcons name="engine" size={22} color={colors.primary} />
                   </View>
-                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary }]}>
+                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary, fontVariant: ['tabular-nums'] }]}>
                     {stats.totalGens}
                   </Text>
-                  <Text style={{ fontFamily: F.medium, color: '#10B981', fontSize: 11 }}>
-                    ● 100% Operativas en flota
+                  <Text style={{ fontFamily: F.medium, color: '#10B981', fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                    {fleetOverviewAnalytics.overview.runningPlants + fleetOverviewAnalytics.overview.standbyPlants} operativas · {fleetOverviewAnalytics.overview.totalCapacityKva} kVA totales
                   </Text>
                 </View>
 
@@ -948,11 +984,11 @@ export const AdminDashboard: React.FC = () => {
                     <Text style={{ fontFamily: F.semibold, color: textSecondary, fontSize: 11 }}>HORAS TOTALES FLOTA</Text>
                     <MaterialIcons name="timer" size={22} color="#3B82F6" />
                   </View>
-                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary }]}>
+                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary, fontVariant: ['tabular-nums'] }]}>
                     {stats.totalHoursFleet} h
                   </Text>
-                  <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 11 }}>
-                    Horómetros globales acumulados
+                  <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                    Prom. {fleetOverviewAnalytics.overview.avgHorometerHours.toFixed(1)} h/planta · {fleetOverviewAnalytics.overview.avgHoursPerDayFleet.toFixed(1)} h/día
                   </Text>
                 </View>
 
@@ -961,24 +997,24 @@ export const AdminDashboard: React.FC = () => {
                     <Text style={{ fontFamily: F.semibold, color: textSecondary, fontSize: 11 }}>CORTES ELÉCTRICOS</Text>
                     <MaterialCommunityIcons name="flash-alert" size={22} color="#F59E0B" />
                   </View>
-                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: '#F59E0B' }]}>
+                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: '#F59E0B', fontVariant: ['tabular-nums'] }]}>
                     {stats.totalOutagesCount} eventos
                   </Text>
-                  <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 11 }}>
-                    {stats.totalBlackoutHours} h sin red comercial
+                  <Text style={{ fontFamily: F.medium, color: textSecondary, fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                    {stats.totalBlackoutHours} h totales · Prom. {formatMinutesDuration(fleetOverviewAnalytics.overview.avgOutageMinutes)}/corte
                   </Text>
                 </View>
 
                 <View style={[styles.kpiCard, { backgroundColor: cardBg, borderLeftColor: '#10B981' }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ fontFamily: F.semibold, color: textSecondary, fontSize: 11 }}>USUARIOS / OPERADORES</Text>
+                    <Text style={{ fontFamily: F.semibold, color: textSecondary, fontSize: 11 }}>USUARIOS Y MANTENIMIENTO</Text>
                     <MaterialIcons name="people" size={22} color="#10B981" />
                   </View>
-                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary }]}>
+                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary, fontVariant: ['tabular-nums'] }]}>
                     {stats.totalUsersCount}
                   </Text>
-                  <Text style={{ fontFamily: F.medium, color: colors.primary, fontSize: 11 }}>
-                    Personal con acceso en la app
+                  <Text style={{ fontFamily: F.medium, color: colors.primary, fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                    {stats.totalServicesCount} servicios · Salud flota {fleetOverviewAnalytics.overview.avgFleetHealthPct.toFixed(0)}%
                   </Text>
                 </View>
               </View>
@@ -1107,6 +1143,172 @@ export const AdminDashboard: React.FC = () => {
               )}
               </View>
 
+              {/* Resumen Estadístico Ejecutivo: Cortes por Empresa & Comparativa de Plantas */}
+              <View style={{ marginTop: 28, gap: 14 }}>
+                <View style={{ flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: 10 }}>
+                  <View>
+                    <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 17 }}>
+                      Resumen Estadístico: Cortes por Empresa y Uso Comparativo de Plantas
+                    </Text>
+                    <Text style={{ fontFamily: F.regular, color: textSecondary, fontSize: 12.5 }}>
+                      Promedios globales en tiempo real calculados desde Supabase ({fleetOverviewAnalytics.overview.effectiveDaysSpan} días evaluados).
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setActiveTab('analytics')}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: colors.primary,
+                      paddingHorizontal: 14,
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialIcons name="bar-chart" size={16} color={isDark ? '#001136' : '#FFFFFF'} />
+                    <Text style={{ fontFamily: F.bold, fontSize: 12, color: isDark ? '#001136' : '#FFFFFF' }}>
+                      Ver Estadísticas Completas
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ flexDirection: isMobile ? 'column' : 'row', gap: 14 }}>
+                  {/* Promedio de Cortes por Empresa */}
+                  <View style={[styles.formPanel, { flex: 1, backgroundColor: cardBg, borderColor: borderCol, marginBottom: 0, padding: 18 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <MaterialIcons name="domain" size={18} color="#F59E0B" />
+                        <Text style={{ fontFamily: F.bold, fontSize: 14.5, color: textPrimary }}>
+                          Promedios de Corte por Empresa
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: F.semibold, fontSize: 11, color: textSecondary, fontVariant: ['tabular-nums'] }}>
+                        Red: {formatMinutesDuration(fleetOverviewAnalytics.overview.networkAvgOutageMinutes)}/corte
+                      </Text>
+                    </View>
+
+                    {fleetOverviewAnalytics.companyOutages.length === 0 ? (
+                      <Text style={{ fontFamily: F.regular, fontSize: 12.5, color: textSecondary }}>
+                        Aún no hay empresas registradas para comparar cortes.
+                      </Text>
+                    ) : (
+                      <View style={{ gap: 10 }}>
+                        {fleetOverviewAnalytics.companyOutages.slice(0, 5).map((comp) => (
+                          <View
+                            key={comp.companyKey}
+                            style={{
+                              padding: 11,
+                              borderRadius: 10,
+                              backgroundColor: inputBg,
+                              borderWidth: 1,
+                              borderColor: borderCol,
+                              gap: 4,
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Text style={{ fontFamily: F.bold, fontSize: 13, color: textPrimary }}>
+                                {comp.companyName}
+                              </Text>
+                              <Text style={{ fontFamily: F.bold, fontSize: 12.5, color: '#F59E0B', fontVariant: ['tabular-nums'] }}>
+                                Prom. {formatMinutesDuration(comp.avgOutageMinutes)}
+                              </Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                              <Text style={{ fontFamily: F.medium, fontSize: 11.5, color: textSecondary, fontVariant: ['tabular-nums'] }}>
+                                {comp.outageCount} cortes · {comp.avgOutagesPerPlant.toFixed(1)}/planta · {(comp.totalOutageMinutes / 60).toFixed(1)} h totales
+                              </Text>
+                              <Text
+                                style={{
+                                  fontFamily: F.bold,
+                                  fontSize: 11,
+                                  fontVariant: ['tabular-nums'],
+                                  color:
+                                    comp.vsNetworkAvgDurationPct === null
+                                      ? textSecondary
+                                      : comp.vsNetworkAvgDurationPct > 0
+                                      ? '#D97706'
+                                      : '#059669',
+                                }}
+                              >
+                                {comp.vsNetworkAvgDurationPct === null ? 'Sin cortes' : `${formatSignedPct(comp.vsNetworkAvgDurationPct)} vs Red`}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Uso Promedio & Comparativa de Plantas */}
+                  <View style={[styles.formPanel, { flex: 1, backgroundColor: cardBg, borderColor: borderCol, marginBottom: 0, padding: 18 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <MaterialCommunityIcons name="chart-bar" size={18} color="#3B82F6" />
+                        <Text style={{ fontFamily: F.bold, fontSize: 14.5, color: textPrimary }}>
+                          Comparativa de Uso por Planta
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: F.semibold, fontSize: 11, color: textSecondary, fontVariant: ['tabular-nums'] }}>
+                        Prom: {fleetOverviewAnalytics.overview.avgHorometerHours.toFixed(1)} h
+                      </Text>
+                    </View>
+
+                    {fleetOverviewAnalytics.plantUsage.length === 0 ? (
+                      <Text style={{ fontFamily: F.regular, fontSize: 12.5, color: textSecondary }}>
+                        Aún no hay plantas eléctricas registradas.
+                      </Text>
+                    ) : (
+                      <View style={{ gap: 10 }}>
+                        {fleetOverviewAnalytics.plantUsage.slice(0, 5).map((plant) => (
+                          <View
+                            key={plant.generatorId}
+                            style={{
+                              padding: 11,
+                              borderRadius: 10,
+                              backgroundColor: inputBg,
+                              borderWidth: 1,
+                              borderColor: borderCol,
+                              gap: 4,
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Text style={{ fontFamily: F.bold, fontSize: 13, color: textPrimary }}>
+                                #{plant.usageRank} {plant.name}
+                              </Text>
+                              <Text style={{ fontFamily: F.bold, fontSize: 12.5, color: '#3B82F6', fontVariant: ['tabular-nums'] }}>
+                                {plant.currentHours.toFixed(1)} h ({plant.shareOfFleetHoursPct.toFixed(0)}%)
+                              </Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                              <Text style={{ fontFamily: F.medium, fontSize: 11.5, color: textSecondary, fontVariant: ['tabular-nums'] }}>
+                                {plant.companyName} · {plant.avgHoursPerDay.toFixed(2)} h/día · {plant.outagesCount} cortes
+                              </Text>
+                              <Text
+                                style={{
+                                  fontFamily: F.bold,
+                                  fontSize: 11,
+                                  fontVariant: ['tabular-nums'],
+                                  color:
+                                    plant.vsFleetAvgHorometerPct === null
+                                      ? textSecondary
+                                      : plant.vsFleetAvgHorometerPct >= 0
+                                      ? '#3B82F6'
+                                      : '#059669',
+                                }}
+                              >
+                                {formatSignedPct(plant.vsFleetAvgHorometerPct)} vs Prom.
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
               {/* Quick Link to Plant Fleet Tab */}
               <TouchableOpacity 
                 style={[styles.manageFleetBanner, { backgroundColor: cardBg, borderColor: borderCol }]}
@@ -1127,6 +1329,25 @@ export const AdminDashboard: React.FC = () => {
                 <MaterialIcons name="chevron-right" size={22} color={colors.primary} />
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* ==================================================== */}
+          {/* TAB 1B: ESTADÍSTICAS PROMEDIALES Y COMPARATIVAS */}
+          {/* ==================================================== */}
+          {activeTab === 'analytics' && (
+            <AnalyticsDashboardSection
+              generators={generators}
+              horometerLogs={horometerLogs}
+              outages={outages}
+              services={services}
+              companies={companies}
+              departments={departments}
+              appUsers={appUsers}
+              isDark={isDark}
+              colors={colors}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onNotify={notify}
+            />
           )}
 
           {/* ==================================================== */}
@@ -4183,17 +4404,17 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   logoBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   superBadge: {
     flexDirection: 'row',
