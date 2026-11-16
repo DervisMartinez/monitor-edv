@@ -263,7 +263,7 @@ export const DEFAULT_VEHICLE_ODOMETERS: VehicleOdometerRecord[] = [
 ];
 
 // Super Administrador oficial + usuarios iniciales con plantas asignadas
-const DEFAULT_APP_USERS: AppUser[] = [
+export const DEFAULT_APP_USERS: AppUser[] = [
   {
     id: 'user-admin-edv',
     email: 'admin@empresasdelvalle.com',
@@ -441,7 +441,7 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
   const [horometerLogs, setHorometerLogs] = useState<HorometerRecord[]>([]);
   const [outages, setOutages] = useState<PowerOutage[]>([]);
   const [services, setServices] = useState<GeneratorService[]>([]);
-  const [appUsers, setAppUsers] = useState<AppUser[]>([]);
+  const [appUsers, setAppUsers] = useState<AppUser[]>(DEFAULT_APP_USERS);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>(DEFAULT_VEHICLES);

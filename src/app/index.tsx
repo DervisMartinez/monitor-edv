@@ -58,13 +58,12 @@ export default function HomeScreen() {
   const isWeb = isWebPlatform();
 
   useEffect(() => {
-    if (isAuthenticated && !isRecoveryModeRef.current) {
+    if (isLoggedIn && !isRecoveryModeRef.current) {
       setViewState('app');
-    } else if (!isAuthenticated && !isRecoveryModeRef.current) {
-      setSession(null);
+    } else if (!isLoggedIn && !isRecoveryModeRef.current) {
       setViewState('auth');
     }
-  }, [isAuthenticated, isWeb]);
+  }, [isLoggedIn, isWeb]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -86,22 +85,16 @@ export default function HomeScreen() {
         return;
       }
 
-      if (event === 'SIGNED_OUT' || !session) {
+      if (event === 'SIGNED_OUT') {
         setSession(null);
-        if (!isRecoveryModeRef.current) {
+        if (!isRecoveryModeRef.current && !isAuthenticated) {
           setViewState('auth');
         }
         return;
       }
 
-      if (session) {
-        if (!isRecoveryModeRef.current) {
-          setViewState('app');
-        }
-      } else {
-        if (!isRecoveryModeRef.current) {
-          setViewState('auth');
-        }
+      if (session && !isRecoveryModeRef.current) {
+        setViewState('app');
       }
     });
 
@@ -232,7 +225,7 @@ export default function HomeScreen() {
   }
 
   // Si no ha iniciado sesión, mostrar directamente la pantalla de acceso corporativo
-  if (!isLoggedIn || viewState === 'auth') {
+  if (!isLoggedIn) {
     return <AuthScreen />;
   }
 
