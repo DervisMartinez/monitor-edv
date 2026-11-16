@@ -35,6 +35,7 @@ import {
   getVehicleServiceStatus,
 } from '../../../constants/vehicleTelemetry';
 import { Company, Department, AppUser } from '../../../domain/entities/Generator';
+import { ImageUploader } from './ImageUploader';
 
 interface VehiclesSectionProps {
   vehicles: Vehicle[];
@@ -132,6 +133,18 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
   const [odoTargetVehId, setOdoTargetVehId] = useState(vehicles[0]?.id || '');
   const [odoReading, setOdoReading] = useState('');
   const [odoNotes, setOdoNotes] = useState('Lectura rutinaria de odómetro');
+
+  // Quick Assign User State
+  const [showAssignUserModal, setShowAssignUserModal] = useState(false);
+  const [assigningVehicle, setAssigningVehicle] = useState<Vehicle | null>(null);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('');
+  const [userSearchText, setUserSearchText] = useState('');
+
+  // Quick Change Photo State
+  const [showChangePhotoModal, setShowChangePhotoModal] = useState(false);
+  const [photoVehicle, setPhotoVehicle] = useState<Vehicle | null>(null);
+  const [photoCustomUri, setPhotoCustomUri] = useState('');
+  const [photoCatalogItem, setPhotoCatalogItem] = useState<CatalogVehicleItem | null>(null);
 
   // Colors
   const cardBg = isDark ? '#001136' : '#FFFFFF';
@@ -247,6 +260,10 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
 
     const vehicleId = editingVehicle?.id || `veh-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
 
+    const isCar = formVehicleType === 'car';
+    const fallbackCatalog = isCar ? CAR_CATALOG[0].imageRes : MOTO_CATALOG[0].imageRes;
+    const customImg = formCustomImg.trim();
+
     const newVehicle: Vehicle = {
       id: vehicleId,
       name: formName.trim() || `${formVehicleType === 'moto' ? 'Moto' : 'Vehículo'} ${formBrand} ${formModel}`,
@@ -262,11 +279,12 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
       companyName: matchedComp?.name || editingVehicle?.companyName,
       departmentId: formDeptId || matchedDept?.id,
       departmentName: matchedDept?.name || editingVehicle?.departmentName,
-      assignedUserId: formUserId || matchedUser?.id,
-      assignedUserName: matchedUser?.fullName || editingVehicle?.assignedUserName,
-      imageUrl: formCustomImg.trim() || editingVehicle?.imageUrl,
-      catalogImageRes: selectedCatalogItem?.imageRes || editingVehicle?.catalogImageRes,
-      catalogId: selectedCatalogItem?.id || editingVehicle?.catalogId,
+      assignedUserId: formUserId || undefined,
+      assignedUserName: matchedUser ? (matchedUser.fullName || matchedUser.email) : undefined,
+      customImageUri: customImg || undefined,
+      imageUrl: customImg || undefined,
+      catalogImageRes: customImg ? undefined : (selectedCatalogItem?.imageRes || (editingVehicle?.customImageUri ? undefined : editingVehicle?.catalogImageRes) || fallbackCatalog),
+      catalogId: customImg ? undefined : (selectedCatalogItem?.id || editingVehicle?.catalogId),
       notes: formNotes.trim(),
       createdAt: editingVehicle?.createdAt || new Date().toISOString(),
     };
@@ -286,7 +304,8 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
   const handleOpenEditVehicle = (v: Vehicle) => {
     setEditingVehicle(v);
     setFormVehicleType(v.vehicleType);
-    setFormCatalogOrCustom('custom');
+    setFormCatalogOrCustom(v.customImageUri || v.imageUrl ? 'custom' : 'catalog');
+    setSelectedCatalogItem(null);
     setFormName(v.name || '');
     setFormBrand(v.brand);
     setFormModel(v.model);
@@ -297,9 +316,65 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
     setFormCompanyId(v.companyId || companies[0]?.id || '');
     setFormDeptId(v.departmentId || departments[0]?.id || '');
     setFormUserId(v.assignedUserId || '');
-    setFormCustomImg(v.imageUrl || '');
+    setFormCustomImg(v.customImageUri || v.imageUrl || '');
     setFormNotes(v.notes || '');
     setShowAddVehicleModal(true);
+  };
+
+  // Open quick assign user modal
+  const handleOpenAssignUser = (v: Vehicle) => {
+    setAssigningVehicle(v);
+    setSelectedAssigneeId(v.assignedUserId || '');
+    setUserSearchText('');
+    setShowAssignUserModal(true);
+  };
+
+  // Submit quick assign user
+  const handleSaveAssignUser = async () => {
+    if (!assigningVehicle) return;
+    const targetUser = appUsers.find((u) => u.id === selectedAssigneeId);
+    const updates: Partial<Vehicle> = {
+      assignedUserId: selectedAssigneeId || undefined,
+      assignedUserName: targetUser ? (targetUser.fullName || targetUser.email) : undefined,
+    };
+    await onUpdateVehicle(assigningVehicle.id, updates);
+    setShowAssignUserModal(false);
+    onNotify?.(
+      'Conductor Asignado',
+      targetUser
+        ? `Se asignó a ${targetUser.fullName || targetUser.email} el vehículo ${assigningVehicle.brand} ${assigningVehicle.model}.`
+        : `Se desvinculó el conductor de ${assigningVehicle.brand} ${assigningVehicle.model}.`
+    );
+  };
+
+  // Open quick change photo modal
+  const handleOpenChangePhoto = (v: Vehicle) => {
+    setPhotoVehicle(v);
+    setPhotoCustomUri(v.customImageUri || v.imageUrl || '');
+    setPhotoCatalogItem(null);
+    setShowChangePhotoModal(true);
+  };
+
+  // Submit quick change photo
+  const handleSaveChangePhoto = async () => {
+    if (!photoVehicle) return;
+    const isCar = photoVehicle.vehicleType === 'car';
+    const fallbackCatalog = isCar ? CAR_CATALOG[0].imageRes : MOTO_CATALOG[0].imageRes;
+    const newUri = photoCustomUri.trim();
+
+    const updates: Partial<Vehicle> = {
+      customImageUri: newUri || undefined,
+      imageUrl: newUri || undefined,
+      catalogImageRes: newUri ? undefined : (photoCatalogItem?.imageRes || photoVehicle.catalogImageRes || fallbackCatalog),
+      catalogId: newUri ? undefined : (photoCatalogItem?.id || photoVehicle.catalogId),
+    };
+
+    await onUpdateVehicle(photoVehicle.id, updates);
+    setShowChangePhotoModal(false);
+    onNotify?.(
+      'Fotografía Actualizada',
+      `Se guardó la nueva fotografía para ${photoVehicle.brand} ${photoVehicle.model}.`
+    );
   };
 
   // Delete vehicle confirmation
@@ -737,15 +812,35 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
 
                     {/* Image & Main Info */}
                     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                      <View style={[styles.vehImageThumb, { backgroundColor: subSurfaceBg, borderColor: borderCol }]}>
-                        {veh.catalogImageRes ? (
-                          <Image source={veh.catalogImageRes} style={{ width: '85%', height: '85%' }} resizeMode="contain" />
-                        ) : veh.imageUrl ? (
-                          <Image source={{ uri: veh.imageUrl }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+                      <TouchableOpacity
+                        onPress={() => handleOpenChangePhoto(veh)}
+                        style={[styles.vehImageThumb, { backgroundColor: subSurfaceBg, borderColor: borderCol, position: 'relative' }]}
+                        activeOpacity={0.8}
+                        accessibilityLabel="Cambiar foto de la unidad"
+                      >
+                        {veh.customImageUri || veh.imageUrl ? (
+                          <Image
+                            source={{ uri: veh.customImageUri || veh.imageUrl }}
+                            style={{ width: '100%', height: '100%', borderRadius: 8 }}
+                            resizeMode="cover"
+                          />
+                        ) : veh.catalogImageRes ? (
+                          <Image
+                            source={veh.catalogImageRes}
+                            style={{ width: '85%', height: '85%' }}
+                            resizeMode="contain"
+                          />
                         ) : (
-                          <MaterialIcons name={isCar ? 'directions-car' : 'two-wheeler'} size={32} color={textSecondary} />
+                          <Image
+                            source={isCar ? CAR_CATALOG[0].imageRes : MOTO_CATALOG[0].imageRes}
+                            style={{ width: '85%', height: '85%' }}
+                            resizeMode="contain"
+                          />
                         )}
-                      </View>
+                        <View style={styles.thumbEditOverlay}>
+                          <MaterialIcons name="photo-camera" size={10} color="#FFFFFF" />
+                        </View>
+                      </TouchableOpacity>
 
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontFamily: F.extrabold, fontSize: 14.5, color: textPrimary }} numberOfLines={1}>
@@ -759,6 +854,50 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
                         </Text>
                       </View>
                     </View>
+
+                    {/* Conductor Asignado Strip */}
+                    <TouchableOpacity
+                      onPress={() => handleOpenAssignUser(veh)}
+                      style={[
+                        styles.driverStrip,
+                        {
+                          backgroundColor: veh.assignedUserId
+                            ? (isDark ? 'rgba(56, 189, 248, 0.08)' : '#F0F9FF')
+                            : (isDark ? 'rgba(245, 158, 11, 0.08)' : '#FFFBEB'),
+                          borderColor: veh.assignedUserId
+                            ? 'rgba(56, 189, 248, 0.3)'
+                            : 'rgba(245, 158, 11, 0.3)',
+                        },
+                      ]}
+                      activeOpacity={0.7}
+                      accessibilityLabel="Asignar o cambiar conductor"
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                        <MaterialIcons
+                          name={veh.assignedUserId ? 'person' : 'person-add'}
+                          size={15}
+                          color={veh.assignedUserId ? colors.primary : '#F59E0B'}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              fontFamily: F.bold,
+                              fontSize: 11,
+                              color: veh.assignedUserId ? textPrimary : '#F59E0B',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {veh.assignedUserName || 'Sin conductor asignado'}
+                          </Text>
+                          <Text style={{ fontFamily: F.regular, fontSize: 9.5, color: textSecondary }}>
+                            {veh.assignedUserId
+                              ? 'Conductor / Operador a cargo · Clic para reasignar'
+                              : 'Clic para asignar operador de la empresa'}
+                          </Text>
+                        </View>
+                      </View>
+                      <MaterialIcons name="swap-horiz" size={16} color={textSecondary} />
+                    </TouchableOpacity>
 
                     {/* Odometer readout */}
                     <View style={[styles.odometerStrip, { backgroundColor: subSurfaceBg, borderColor: borderCol }]}>
@@ -1287,27 +1426,53 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
                   </View>
 
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.formLabel, { color: textSecondary }]}>CONDUCTOR / OPERADOR</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                      {appUsers.map((u) => {
-                        const sel = formUserId === u.id;
-                        return (
-                          <TouchableOpacity
-                            key={u.id}
-                            onPress={() => setFormUserId(u.id)}
-                            style={[
-                              styles.chipBtn,
-                              { backgroundColor: sel ? accentPrimary : subSurfaceBg, borderColor: borderCol },
-                            ]}
-                          >
-                            <Text style={{ fontFamily: F.bold, fontSize: 11, color: sel ? (isDark ? '#001136' : '#FFFFFF') : textPrimary }}>
-                              {u.fullName || u.email}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                    <Text style={[styles.formLabel, { color: textSecondary }]}>CONDUCTOR / OPERADOR ASIGNADO</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <TouchableOpacity
+                          onPress={() => setFormUserId('')}
+                          style={[
+                            styles.chipBtn,
+                            { backgroundColor: !formUserId ? '#EF4444' : subSurfaceBg, borderColor: borderCol },
+                          ]}
+                        >
+                          <MaterialIcons name="person-off" size={13} color={!formUserId ? '#FFFFFF' : textSecondary} />
+                          <Text style={{ fontFamily: F.bold, fontSize: 11, color: !formUserId ? '#FFFFFF' : textPrimary }}>
+                            Ninguno
+                          </Text>
+                        </TouchableOpacity>
+
+                        {appUsers.map((u) => {
+                          const sel = formUserId === u.id;
+                          return (
+                            <TouchableOpacity
+                              key={u.id}
+                              onPress={() => setFormUserId(u.id)}
+                              style={[
+                                styles.chipBtn,
+                                { backgroundColor: sel ? accentPrimary : subSurfaceBg, borderColor: borderCol },
+                              ]}
+                            >
+                              <MaterialIcons name="person" size={13} color={sel ? (isDark ? '#001136' : '#FFFFFF') : textSecondary} />
+                              <Text style={{ fontFamily: F.bold, fontSize: 11, color: sel ? (isDark ? '#001136' : '#FFFFFF') : textPrimary }}>
+                                {u.fullName || u.email}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
                   </View>
+                </View>
+
+                {/* Fotografía / Imagen de la Unidad (Archivo local o Enlace URL) */}
+                <View style={{ marginTop: 4 }}>
+                  <ImageUploader
+                    label="Fotografía Real de la Unidad (Archivo local o Enlace URL):"
+                    imageUri={formCustomImg}
+                    onImageChange={setFormCustomImg}
+                    isDark={isDark}
+                  />
                 </View>
 
                 {/* Notes */}
@@ -1713,6 +1878,244 @@ export const VehiclesSection: React.FC<VehiclesSectionProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* MODAL 5: CAMBIAR FOTOGRAFÍA / IMAGEN RÁPIDA */}
+      <Modal visible={showChangePhotoModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg, borderColor: borderCol }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialIcons name="photo-camera" size={22} color={accentPrimary} />
+                <View>
+                  <Text style={{ fontFamily: F.bold, fontSize: 16, color: textPrimary }}>
+                    Actualizar Fotografía del Vehículo
+                  </Text>
+                  <Text style={{ fontFamily: F.medium, fontSize: 11.5, color: textSecondary }}>
+                    {photoVehicle?.brand} {photoVehicle?.model} ({photoVehicle?.plate || 'Sin placa'})
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowChangePhotoModal(false)}>
+                <MaterialIcons name="close" size={20} color={textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 14 }}>
+                {/* ImageUploader: Subir archivo o ingresar URL */}
+                <ImageUploader
+                  label="Montar Fotografía Real de la Unidad (Archivo local o Enlace URL):"
+                  imageUri={photoCustomUri}
+                  onImageChange={(uri) => {
+                    setPhotoCustomUri(uri);
+                    if (uri) setPhotoCatalogItem(null);
+                  }}
+                  isDark={isDark}
+                />
+
+                {/* Separador O elegir del Catálogo */}
+                <View style={{ borderTopWidth: 1, borderTopColor: borderCol, paddingTop: 14 }}>
+                  <Text style={[styles.formLabel, { color: textSecondary, marginBottom: 8 }]}>
+                    O SELECCIONAR ILUSTRACIÓN DEL CATÁLOGO ({photoVehicle?.vehicleType === 'car' ? 'CARROS' : 'MOTOS'})
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator>
+                    <View style={{ flexDirection: 'row', gap: 10, paddingVertical: 4 }}>
+                      {(photoVehicle?.vehicleType === 'car' ? CAR_CATALOG : MOTO_CATALOG).map((item) => {
+                        const isSelected = photoCatalogItem?.id === item.id;
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            onPress={() => {
+                              setPhotoCatalogItem(item);
+                              setPhotoCustomUri('');
+                            }}
+                            style={[
+                              styles.catalogCard,
+                              {
+                                backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.12)' : subSurfaceBg,
+                                borderColor: isSelected ? accentPrimary : borderCol,
+                              },
+                            ]}
+                          >
+                            <View style={styles.catalogThumb}>
+                              {item.imageRes ? (
+                                <Image source={item.imageRes} style={{ width: '90%', height: '90%' }} resizeMode="contain" />
+                              ) : (
+                                <MaterialIcons name="directions-car" size={24} color={textSecondary} />
+                              )}
+                            </View>
+                            <Text style={{ fontFamily: F.bold, fontSize: 12, color: textPrimary }}>{item.brand}</Text>
+                            <Text style={{ fontFamily: F.regular, fontSize: 11, color: textSecondary }} numberOfLines={1}>{item.model}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={() => setShowChangePhotoModal(false)}
+                style={[styles.cancelBtn, { borderColor: borderCol }]}
+              >
+                <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: textSecondary }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveChangePhoto}
+                style={[styles.primaryActionBtn, { backgroundColor: accentPrimary }]}
+              >
+                <Text style={{ fontFamily: F.bold, fontSize: 12.5, color: isDark ? '#001136' : '#FFFFFF' }}>
+                  Guardar Fotografía
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL 6: ASIGNAR CONDUCTOR / OPERADOR RÁPIDO */}
+      <Modal visible={showAssignUserModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg, borderColor: borderCol, maxWidth: 520 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialIcons name="person-pin" size={22} color={accentPrimary} />
+                <View>
+                  <Text style={{ fontFamily: F.bold, fontSize: 16, color: textPrimary }}>
+                    Asignar Conductor / Operador
+                  </Text>
+                  <Text style={{ fontFamily: F.medium, fontSize: 11.5, color: textSecondary }}>
+                    {assigningVehicle?.brand} {assigningVehicle?.model} ({assigningVehicle?.plate || 'Sin placa'})
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowAssignUserModal(false)}>
+                <MaterialIcons name="close" size={20} color={textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* User Search Input */}
+            <View style={{ marginBottom: 12 }}>
+              <TextInput
+                style={[styles.inputBox, { backgroundColor: subSurfaceBg, borderColor: borderCol, color: textPrimary }]}
+                placeholder="Buscar usuario por nombre o correo..."
+                placeholderTextColor={textSecondary}
+                value={userSearchText}
+                onChangeText={setUserSearchText}
+              />
+            </View>
+
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 8 }}>
+                {/* Opción 1: Sin Asignar */}
+                <TouchableOpacity
+                  onPress={() => setSelectedAssigneeId('')}
+                  style={[
+                    styles.userSelectCard,
+                    {
+                      backgroundColor: selectedAssigneeId === '' ? 'rgba(239, 68, 68, 0.1)' : subSurfaceBg,
+                      borderColor: selectedAssigneeId === '' ? '#EF4444' : borderCol,
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={[styles.userAvatar, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+                      <MaterialIcons name="person-off" size={18} color="#EF4444" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: F.bold, fontSize: 13, color: textPrimary }}>
+                        Ninguno (Sin conductor asignado)
+                      </Text>
+                      <Text style={{ fontFamily: F.regular, fontSize: 11, color: textSecondary }}>
+                        Dejar la unidad como vehículo compartido sin responsable fijo
+                      </Text>
+                    </View>
+                  </View>
+                  {selectedAssigneeId === '' && (
+                    <MaterialIcons name="check-circle" size={20} color="#EF4444" />
+                  )}
+                </TouchableOpacity>
+
+                {/* Lista de Usuarios Registrados */}
+                {appUsers
+                  .filter((u) => {
+                    if (!userSearchText.trim()) return true;
+                    const q = userSearchText.toLowerCase();
+                    return (
+                      (u.fullName || '').toLowerCase().includes(q) ||
+                      (u.email || '').toLowerCase().includes(q) ||
+                      (u.role || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .map((u) => {
+                    const isSelected = selectedAssigneeId === u.id;
+                    const roleColor = u.role === 'superadmin' ? '#F59E0B' : u.role === 'tecnico' ? '#3B82F6' : '#10B981';
+                    return (
+                      <TouchableOpacity
+                        key={u.id}
+                        onPress={() => setSelectedAssigneeId(u.id)}
+                        style={[
+                          styles.userSelectCard,
+                          {
+                            backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.12)' : subSurfaceBg,
+                            borderColor: isSelected ? accentPrimary : borderCol,
+                          },
+                        ]}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                          <View style={[styles.userAvatar, { backgroundColor: `${roleColor}25` }]}>
+                            <MaterialIcons name="person" size={18} color={roleColor} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={{ fontFamily: F.bold, fontSize: 13, color: textPrimary }} numberOfLines={1}>
+                                {u.fullName || u.email}
+                              </Text>
+                              <View style={[styles.rolePill, { backgroundColor: `${roleColor}20` }]}>
+                                <Text style={{ fontFamily: F.bold, fontSize: 9.5, color: roleColor, textTransform: 'uppercase' }}>
+                                  {u.role}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={{ fontFamily: F.regular, fontSize: 11, color: textSecondary }} numberOfLines={1}>
+                              {u.email} {u.companyName ? `· ${u.companyName}` : ''}
+                            </Text>
+                          </View>
+                        </View>
+                        {isSelected && (
+                          <MaterialIcons name="check-circle" size={20} color={accentPrimary} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+              </View>
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={() => setShowAssignUserModal(false)}
+                style={[styles.cancelBtn, { borderColor: borderCol }]}
+              >
+                <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: textSecondary }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveAssignUser}
+                style={[styles.primaryActionBtn, { backgroundColor: accentPrimary }]}
+              >
+                <Text style={{ fontFamily: F.bold, fontSize: 12.5, color: isDark ? '#001136' : '#FFFFFF' }}>
+                  Confirmar Asignación
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1973,6 +2376,47 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inlineBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  thumbEditOverlay: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(0, 17, 54, 0.75)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  driverStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginVertical: 4,
+  },
+  userSelectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  userAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rolePill: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

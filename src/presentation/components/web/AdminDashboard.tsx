@@ -1666,6 +1666,18 @@ export const AdminDashboard: React.FC = () => {
                                 Múltiples unidades asignadas
                               </Text>
                             )}
+                            {(() => {
+                              const userVehicles = vehicles.filter(v => v.assignedUserId === u.id);
+                              if (userVehicles.length === 0) return null;
+                              return (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                  <MaterialIcons name="directions-car" size={12} color="#8B5CF6" />
+                                  <Text style={{ fontFamily: F.semibold, color: '#8B5CF6', fontSize: 10 }} numberOfLines={1}>
+                                    {userVehicles.map(v => `${v.brand} ${v.model}`).join(', ')}
+                                  </Text>
+                                </View>
+                              );
+                            })()}
                           </View>
                         </View>
 

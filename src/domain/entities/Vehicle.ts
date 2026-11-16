@@ -44,6 +44,7 @@ export interface Vehicle {
   assignedUserId?: string;
   assignedUserName?: string;
   imageUrl?: string;
+  customImageUri?: string;
   catalogImageRes?: any;
   catalogId?: string;
   notes?: string;

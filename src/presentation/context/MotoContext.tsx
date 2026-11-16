@@ -607,10 +607,19 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
             const parsed = JSON.parse(savedVehicles);
             if (Array.isArray(parsed) && parsed.length > 0) {
               const mapped = parsed.map(v => {
-                const catMatch = ALL_VEHICLE_CATALOG.find(c => c.brand.toLowerCase() === (v.brand || '').toLowerCase() && c.model.toLowerCase() === (v.model || '').toLowerCase());
+                const isCar = isCarVehicle(v);
+                const catMatch = ALL_VEHICLE_CATALOG.find(c => 
+                  c.brand.toLowerCase() === (v.brand || '').toLowerCase() && 
+                  c.model.toLowerCase() === (v.model || '').toLowerCase()
+                );
+                const fallbackCatalog = isCar ? CAR_CATALOG[0].imageRes : MOTO_CATALOG[0].imageRes;
+                const hasCustom = Boolean(v.customImageUri || v.imageUrl);
                 return {
                   ...v,
-                  catalogImageRes: catMatch?.imageRes || v.catalogImageRes,
+                  vehicleType: v.vehicleType || (isCar ? 'car' : 'moto'),
+                  customImageUri: v.customImageUri || v.imageUrl || undefined,
+                  imageUrl: v.customImageUri || v.imageUrl || undefined,
+                  catalogImageRes: hasCustom ? undefined : (catMatch?.imageRes || (isCar ? CAR_CATALOG[0].imageRes : fallbackCatalog)),
                 };
               });
               setVehicles(mapped);
@@ -1734,7 +1743,7 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         year: vehicle.year,
         plate: vehicle.plate || null,
         current_odometer: vehicle.currentOdometer,
-        image_url: vehicle.imageUrl || null,
+        image_url: vehicle.customImageUri || vehicle.imageUrl || null,
         catalog_id: vehicle.catalogId || null,
       }]);
     } catch (err) {
@@ -1753,7 +1762,9 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
       if (updates.year !== undefined) dbUpdates.year = updates.year;
       if (updates.plate !== undefined) dbUpdates.plate = updates.plate;
       if (updates.currentOdometer !== undefined) dbUpdates.current_odometer = updates.currentOdometer;
-      if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
+      if (updates.imageUrl !== undefined || updates.customImageUri !== undefined) {
+        dbUpdates.image_url = updates.customImageUri || updates.imageUrl || null;
+      }
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from('motos').update(dbUpdates).eq('id', id);
       }
