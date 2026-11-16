@@ -10,7 +10,16 @@ import {
   Company,
   Department
 } from '../../domain/entities/Generator';
+import { 
+  Vehicle, 
+  VehicleType, 
+  VehicleStatus, 
+  VehicleServiceRecord, 
+  VehicleOdometerRecord, 
+  VehicleComponentType 
+} from '../../domain/entities/Vehicle';
 import { GENERATOR_CATALOG } from '../../data/catalog';
+import { MOTO_CATALOG, CAR_CATALOG, ALL_VEHICLE_CATALOG } from '../../data/vehicleCatalog';
 import { supabase } from '../../data/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -122,6 +131,136 @@ const DEFAULT_GENERATORS: Generator[] = [
 const DEFAULT_OUTAGES: PowerOutage[] = [];
 const DEFAULT_HOROMETER_LOGS: HorometerRecord[] = [];
 const DEFAULT_SERVICES: GeneratorService[] = [];
+
+export const isCarVehicle = (v?: { brand?: string; model?: string; vehicleType?: string } | null): boolean => {
+  if (!v) return false;
+  if (v.vehicleType === 'car') return true;
+  if (v.vehicleType === 'moto') return false;
+  const brand = (v.brand || '').trim().toLowerCase();
+  const model = (v.model || '').trim().toLowerCase();
+  if (brand.includes('chevrolet') || model.includes('optra')) return true;
+  if (
+    brand.includes('toyota') || 
+    brand.includes('ford') || 
+    brand.includes('renault') || 
+    brand.includes('volkswagen') || 
+    brand.includes('hyundai') || 
+    brand.includes('nissan') || 
+    brand.includes('fiat') || 
+    brand.includes('mack') || 
+    brand.includes('isuzu')
+  ) {
+    return true;
+  }
+  return false;
+};
+
+// Flota base inicial de vehículos de la empresa (Garage Corporativo EDV)
+export const DEFAULT_VEHICLES: Vehicle[] = [
+  {
+    id: 'veh-keeway-horse-01',
+    name: 'Moto 01 - Mensajería & Supervisión',
+    brand: 'EMPIRE KEEWAY',
+    model: 'New Horse 150',
+    year: 2024,
+    plate: 'AB1C23D',
+    vehicleType: 'moto',
+    category: 'Mensajería / Trabajo',
+    currentOdometer: 14250,
+    status: 'operativo',
+    companyId: 'comp-edv-central',
+    companyName: 'Empresas del Valle S.A.',
+    departmentId: 'dep-infraestructura',
+    departmentName: 'Infraestructura & Operaciones',
+    assignedUserId: 'user-op-carlos',
+    assignedUserName: 'Carlos Mendoza',
+    catalogImageRes: MOTO_CATALOG[0].imageRes,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'veh-toyota-samurai-01',
+    name: 'Unidad 02 - Toyota 4x4 Cuadrilla',
+    brand: 'TOYOTA',
+    model: 'Samurai FJ60',
+    year: 1982,
+    plate: 'XYZ-789',
+    vehicleType: 'car',
+    category: 'SUV / 4x4 Todo Terreno',
+    currentOdometer: 248300,
+    status: 'operativo',
+    companyId: 'comp-logistica-valle',
+    companyName: 'Transportes & Logística Valle',
+    departmentId: 'dep-infraestructura',
+    departmentName: 'Infraestructura & Operaciones',
+    assignedUserId: 'user-tec-roberto',
+    assignedUserName: 'Roberto Gómez',
+    catalogImageRes: CAR_CATALOG[0].imageRes,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEFAULT_VEHICLE_SERVICES: VehicleServiceRecord[] = [
+  {
+    id: 'vs-01',
+    vehicleId: 'veh-keeway-horse-01',
+    userId: 'user-op-carlos',
+    userEmail: 'carlos.mendoza@empresasdelvalle.com',
+    type: 'oil',
+    date: '2026-11-01',
+    odometer: 13000,
+    costUSD: 12,
+    performedBy: 'Taller Central EDV',
+    notes: 'Cambio de aceite 20W-50 4T JASO MA2',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vs-02',
+    vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    userEmail: 'roberto.gomez@empresasdelvalle.com',
+    type: 'oil',
+    date: '2026-10-25',
+    odometer: 245000,
+    costUSD: 45,
+    performedBy: 'Taller Mecánico El Valle',
+    notes: 'Cambio de aceite 20W-50 y filtro de aceite',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vs-03',
+    vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    userEmail: 'roberto.gomez@empresasdelvalle.com',
+    type: 'brakes_front',
+    date: '2026-09-15',
+    odometer: 240000,
+    costUSD: 35,
+    performedBy: 'Frenos La Victoria',
+    notes: 'Pastillas de freno delanteras nuevas y rectificación',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEFAULT_VEHICLE_ODOMETERS: VehicleOdometerRecord[] = [
+  {
+    id: 'vo-01',
+    vehicleId: 'veh-keeway-horse-01',
+    odometer: 14250,
+    deltaKm: 1250,
+    date: new Date().toISOString(),
+    notes: 'Lectura semanal de odómetro',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vo-02',
+    vehicleId: 'veh-toyota-samurai-01',
+    odometer: 248300,
+    deltaKm: 3300,
+    date: new Date().toISOString(),
+    notes: 'Inspección de ruta agrícola y silos',
+    createdAt: new Date().toISOString(),
+  },
+];
 
 // Super Administrador oficial + usuarios iniciales con plantas asignadas
 const DEFAULT_APP_USERS: AppUser[] = [
@@ -281,6 +420,17 @@ export interface GeneratorContextType {
     assignedGeneratorId?: string,
     assignedGeneratorName?: string
   ) => Promise<void>;
+
+  // Vehicle Fleet (Garage Corporativo)
+  vehicles: Vehicle[];
+  vehicleServices: VehicleServiceRecord[];
+  vehicleOdometerLogs: VehicleOdometerRecord[];
+  saveVehicle: (vehicle: Vehicle) => Promise<void>;
+  updateVehicle: (id: string, updates: Partial<Vehicle>) => Promise<void>;
+  deleteVehicle: (id: string) => Promise<{ success: boolean; error?: string }>;
+  addVehicleService: (record: Omit<VehicleServiceRecord, 'id' | 'createdAt'>) => Promise<void>;
+  deleteVehicleService: (id: string) => Promise<void>;
+  addVehicleOdometer: (record: Omit<VehicleOdometerRecord, 'id' | 'createdAt'>) => Promise<{ success: boolean; delta: number }>;
 }
 
 const GeneratorContext = createContext<GeneratorContextType | undefined>(undefined);
@@ -294,6 +444,9 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
   const [appUsers, setAppUsers] = useState<AppUser[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(DEFAULT_VEHICLES);
+  const [vehicleServices, setVehicleServices] = useState<VehicleServiceRecord[]>(DEFAULT_VEHICLE_SERVICES);
+  const [vehicleOdometerLogs, setVehicleOdometerLogs] = useState<VehicleOdometerRecord[]>(DEFAULT_VEHICLE_ODOMETERS);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isAddingMoto, setIsAddingMoto] = useState(false);
   const [sessionUser, setSessionUser] = useState<any>(null);
@@ -377,7 +530,7 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // 2. Load cached local storage
-        const [savedGens, savedLogs, savedOutages, savedServices, savedUsers, savedActiveId, savedCompanies, savedDepts] = await Promise.all([
+        const [savedGens, savedLogs, savedOutages, savedServices, savedUsers, savedActiveId, savedCompanies, savedDepts, savedVehicles, savedVehServices, savedVehOdometers] = await Promise.all([
           AsyncStorage.getItem('@generators_fleet'),
           AsyncStorage.getItem('@horometer_logs'),
           AsyncStorage.getItem('@power_outages'),
@@ -386,6 +539,9 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
           AsyncStorage.getItem('@active_generator_id'),
           AsyncStorage.getItem('@edv_companies'),
           AsyncStorage.getItem('@edv_departments'),
+          AsyncStorage.getItem('@edv_vehicles'),
+          AsyncStorage.getItem('@edv_vehicle_services'),
+          AsyncStorage.getItem('@edv_vehicle_odometers'),
         ]);
 
         if (savedGens) {
@@ -443,6 +599,36 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
           try {
             const parsed = JSON.parse(savedDepts);
             if (Array.isArray(parsed)) setDepartments(parsed);
+          } catch {}
+        }
+
+        if (savedVehicles) {
+          try {
+            const parsed = JSON.parse(savedVehicles);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const mapped = parsed.map(v => {
+                const catMatch = ALL_VEHICLE_CATALOG.find(c => c.brand.toLowerCase() === (v.brand || '').toLowerCase() && c.model.toLowerCase() === (v.model || '').toLowerCase());
+                return {
+                  ...v,
+                  catalogImageRes: catMatch?.imageRes || v.catalogImageRes,
+                };
+              });
+              setVehicles(mapped);
+            }
+          } catch {}
+        }
+
+        if (savedVehServices) {
+          try {
+            const parsed = JSON.parse(savedVehServices);
+            if (Array.isArray(parsed)) setVehicleServices(parsed);
+          } catch {}
+        }
+
+        if (savedVehOdometers) {
+          try {
+            const parsed = JSON.parse(savedVehOdometers);
+            if (Array.isArray(parsed)) setVehicleOdometerLogs(parsed);
           } catch {}
         }
 
@@ -1511,6 +1697,152 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
     } catch {}
   };
 
+  // 7. Flota de Vehículos (Motos & Carros - Garage Corporativo EDV)
+  const persistVehicles = async (newList: Vehicle[]) => {
+    setVehicles(newList);
+    try {
+      await AsyncStorage.setItem('@edv_vehicles', JSON.stringify(newList));
+    } catch {}
+  };
+
+  const persistVehicleServices = async (newList: VehicleServiceRecord[]) => {
+    setVehicleServices(newList);
+    try {
+      await AsyncStorage.setItem('@edv_vehicle_services', JSON.stringify(newList));
+    } catch {}
+  };
+
+  const persistVehicleOdometers = async (newList: VehicleOdometerRecord[]) => {
+    setVehicleOdometerLogs(newList);
+    try {
+      await AsyncStorage.setItem('@edv_vehicle_odometers', JSON.stringify(newList));
+    } catch {}
+  };
+
+  const saveVehicle = async (vehicle: Vehicle) => {
+    const exists = vehicles.some(v => v.id === vehicle.id);
+    const updated = exists 
+      ? vehicles.map(v => v.id === vehicle.id ? vehicle : v)
+      : [vehicle, ...vehicles];
+    await persistVehicles(updated);
+
+    try {
+      await supabase.from('motos').upsert([{
+        id: vehicle.id,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        year: vehicle.year,
+        plate: vehicle.plate || null,
+        current_odometer: vehicle.currentOdometer,
+        image_url: vehicle.imageUrl || null,
+        catalog_id: vehicle.catalogId || null,
+      }]);
+    } catch (err) {
+      console.warn('Error saving vehicle in Supabase:', err);
+    }
+  };
+
+  const updateVehicle = async (id: string, updates: Partial<Vehicle>) => {
+    const updated = vehicles.map(v => v.id === id ? { ...v, ...updates } : v);
+    await persistVehicles(updated);
+
+    try {
+      const dbUpdates: any = {};
+      if (updates.brand !== undefined) dbUpdates.brand = updates.brand;
+      if (updates.model !== undefined) dbUpdates.model = updates.model;
+      if (updates.year !== undefined) dbUpdates.year = updates.year;
+      if (updates.plate !== undefined) dbUpdates.plate = updates.plate;
+      if (updates.currentOdometer !== undefined) dbUpdates.current_odometer = updates.currentOdometer;
+      if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from('motos').update(dbUpdates).eq('id', id);
+      }
+    } catch (err) {
+      console.warn('Error updating vehicle in Supabase:', err);
+    }
+  };
+
+  const deleteVehicle = async (id: string): Promise<{ success: boolean; error?: string }> => {
+    const updated = vehicles.filter(v => v.id !== id);
+    await persistVehicles(updated);
+    const updatedServices = vehicleServices.filter(s => s.vehicleId !== id);
+    await persistVehicleServices(updatedServices);
+    const updatedOdos = vehicleOdometerLogs.filter(o => o.vehicleId !== id);
+    await persistVehicleOdometers(updatedOdos);
+
+    try {
+      await supabase.from('service_records').delete().eq('moto_id', id);
+      await supabase.from('motos').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Error deleting vehicle in Supabase:', err);
+    }
+    return { success: true };
+  };
+
+  const addVehicleService = async (serviceData: Omit<VehicleServiceRecord, 'id' | 'createdAt'>) => {
+    const nowIso = new Date().toISOString();
+    const newService: VehicleServiceRecord = {
+      ...serviceData,
+      id: `vserv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      createdAt: nowIso,
+    };
+
+    const updated = [newService, ...vehicleServices];
+    await persistVehicleServices(updated);
+
+    const targetVeh = vehicles.find(v => v.id === serviceData.vehicleId);
+    if (targetVeh && serviceData.odometer > targetVeh.currentOdometer) {
+      await updateVehicle(targetVeh.id, { currentOdometer: serviceData.odometer });
+    }
+
+    try {
+      await supabase.from('service_records').insert([{
+        id: newService.id,
+        moto_id: newService.vehicleId,
+        type: newService.type,
+        date: newService.date,
+        odometer: newService.odometer,
+        cost_usd: newService.costUSD || 0,
+        notes: newService.notes || null,
+      }]);
+    } catch (err) {
+      console.warn('Error saving vehicle service in Supabase:', err);
+    }
+  };
+
+  const deleteVehicleService = async (id: string) => {
+    const updated = vehicleServices.filter(s => s.id !== id);
+    await persistVehicleServices(updated);
+    try {
+      await supabase.from('service_records').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Error deleting vehicle service in Supabase:', err);
+    }
+  };
+
+  const addVehicleOdometer = async (odoData: Omit<VehicleOdometerRecord, 'id' | 'createdAt'>) => {
+    const targetVeh = vehicles.find(v => v.id === odoData.vehicleId);
+    const prevOdo = targetVeh ? targetVeh.currentOdometer : 0;
+    const delta = Math.max(0, odoData.odometer - prevOdo);
+    const nowIso = new Date().toISOString();
+
+    const newRecord: VehicleOdometerRecord = {
+      ...odoData,
+      id: `vodo-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      deltaKm: delta,
+      createdAt: nowIso,
+    };
+
+    const updated = [newRecord, ...vehicleOdometerLogs];
+    await persistVehicleOdometers(updated);
+
+    if (targetVeh) {
+      await updateVehicle(targetVeh.id, { currentOdometer: odoData.odometer });
+    }
+
+    return { success: true, delta };
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -1591,6 +1923,17 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         unassignGeneratorFromUser,
         logout,
         loginDirectly,
+
+        // Flota de Vehículos (Garage Corporativo EDV)
+        vehicles,
+        vehicleServices,
+        vehicleOdometerLogs,
+        saveVehicle,
+        updateVehicle,
+        deleteVehicle,
+        addVehicleService,
+        deleteVehicleService,
+        addVehicleOdometer,
       }}
     >
       {children}

@@ -22,13 +22,14 @@ import { GENERATOR_CATALOG } from '../../../data/catalog';
 import { PlantReportModal } from './PlantReportModal';
 import { ImageUploader } from './ImageUploader';
 import { AnalyticsDashboardSection } from './AnalyticsDashboardSection';
+import { VehiclesSection } from './VehiclesSection';
 import {
   computeFleetAnalytics,
   formatMinutesDuration,
   formatSignedPct,
 } from '../../../domain/analytics/fleetAnalytics';
 
-type AdminTab = 'overview' | 'analytics' | 'users' | 'generators' | 'companies' | 'horometers' | 'outages' | 'services';
+type AdminTab = 'overview' | 'analytics' | 'vehicles' | 'users' | 'generators' | 'companies' | 'horometers' | 'outages' | 'services';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -58,6 +59,15 @@ export const AdminDashboard: React.FC = () => {
     startOutage,
     endOutage,
     activeOutage,
+    vehicles,
+    vehicleServices,
+    vehicleOdometerLogs,
+    saveVehicle,
+    updateVehicle,
+    deleteVehicle,
+    addVehicleService,
+    deleteVehicleService,
+    addVehicleOdometer,
     logout 
   } = useMyMoto();
   const { colors, isDark, toggleTheme } = useTheme();
@@ -760,6 +770,7 @@ export const AdminDashboard: React.FC = () => {
   const NAV_ITEMS = [
     { id: 'overview', label: 'Resumen General', icon: 'dashboard' },
     { id: 'analytics', label: 'Estadísticas y Comparativas', icon: 'bar-chart' },
+    { id: 'vehicles', label: 'Flota de Vehículos', icon: 'directions-car' },
     { id: 'users', label: 'Crear / Gestionar Usuarios', icon: 'group-add' },
     { id: 'generators', label: 'Plantas Eléctricas', icon: 'precision-manufacturing' },
     { id: 'companies', label: 'Empresas & Dptos', icon: 'domain' },
@@ -804,7 +815,7 @@ export const AdminDashboard: React.FC = () => {
                   ? require('../../../../assets/images/LOGO-EMPRESASDELVALLE.png')
                   : require('../../../../assets/images/EMPRESASDELVALLE-AZUL.png')
               }
-              style={{ width: '90%', height: '90%' }}
+              style={{ width: 34, height: 34 }}
               resizeMode="contain"
             />
           </View>
@@ -1017,6 +1028,23 @@ export const AdminDashboard: React.FC = () => {
                     {stats.totalServicesCount} servicios · Salud flota {fleetOverviewAnalytics.overview.avgFleetHealthPct.toFixed(0)}%
                   </Text>
                 </View>
+
+                <TouchableOpacity
+                  style={[styles.kpiCard, { backgroundColor: cardBg, borderLeftColor: '#8B5CF6' }]}
+                  onPress={() => setActiveTab('vehicles')}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontFamily: F.semibold, color: textSecondary, fontSize: 11 }}>FLOTA VEHICULAR</Text>
+                    <MaterialIcons name="directions-car" size={22} color="#8B5CF6" />
+                  </View>
+                  <Text style={[styles.kpiNumber, { fontFamily: F.extrabold, color: textPrimary, fontVariant: ['tabular-nums'] }]}>
+                    {vehicles.length}
+                  </Text>
+                  <Text style={{ fontFamily: F.medium, color: '#8B5CF6', fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                    {vehicles.filter(v => v.vehicleType === 'moto').length} motos · {vehicles.filter(v => v.vehicleType === 'car').length} carros
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               {/* Live Plant Status Summary Cards */}
@@ -1346,6 +1374,34 @@ export const AdminDashboard: React.FC = () => {
               isDark={isDark}
               colors={colors}
               onNavigateTab={(tab) => setActiveTab(tab)}
+              onNotify={notify}
+            />
+          )}
+
+          {/* ==================================================== */}
+          {/* TAB 1C: FLOTA DE VEHÍCULOS (GARAGE EMPRESARIAL EDV) */}
+          {/* ==================================================== */}
+          {activeTab === 'vehicles' && (
+            <VehiclesSection
+              vehicles={vehicles}
+              vehicleServices={vehicleServices}
+              vehicleOdometerLogs={vehicleOdometerLogs}
+              companies={companies}
+              departments={departments}
+              appUsers={appUsers}
+              onSaveVehicle={saveVehicle}
+              onUpdateVehicle={updateVehicle}
+              onDeleteVehicle={deleteVehicle}
+              onAddVehicleService={addVehicleService}
+              onDeleteVehicleService={deleteVehicleService}
+              onAddVehicleOdometer={addVehicleOdometer}
+              isDark={isDark}
+              colors={{
+                primary: colors.primary,
+                onSurface: colors.onSurface,
+                onSurfaceVariant: colors.onSurfaceVariant,
+                surface: colors.surface,
+              }}
               onNotify={notify}
             />
           )}
