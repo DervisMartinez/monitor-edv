@@ -62,12 +62,16 @@ export const AdminDashboard: React.FC = () => {
     vehicles,
     vehicleServices,
     vehicleOdometerLogs,
+    vehicleDocuments,
     saveVehicle,
     updateVehicle,
     deleteVehicle,
     addVehicleService,
     deleteVehicleService,
     addVehicleOdometer,
+    saveVehicleDocument,
+    updateVehicleDocument,
+    deleteVehicleDocument,
     logout 
   } = useMyMoto();
   const { colors, isDark, toggleTheme } = useTheme();
@@ -130,6 +134,10 @@ export const AdminDashboard: React.FC = () => {
   };
   const [newUserCompanyId, setNewUserCompanyId] = useState('');
   const [newUserDeptId, setNewUserDeptId] = useState('');
+  const [newUserVehicleIds, setNewUserVehicleIds] = useState<string[]>([]);
+  const toggleNewUserVehicleId = (id: string) => {
+    setNewUserVehicleIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  };
 
   // ==========================================
   // EDIT USER STATE (SUPERADMIN)
@@ -152,6 +160,10 @@ export const AdminDashboard: React.FC = () => {
   };
   const [editUserCompanyId, setEditUserCompanyId] = useState('');
   const [editUserDeptId, setEditUserDeptId] = useState('');
+  const [editUserVehicleIds, setEditUserVehicleIds] = useState<string[]>([]);
+  const toggleEditUserVehicleId = (id: string) => {
+    setEditUserVehicleIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  };
 
   // ==========================================
   // CREATE PLANT STATE
@@ -335,11 +347,21 @@ export const AdminDashboard: React.FC = () => {
     });
 
     if (res.success) {
+      if (res.user && newUserVehicleIds.length > 0) {
+        for (const vehId of newUserVehicleIds) {
+          await updateVehicle(vehId, {
+            assignedUserId: res.user.id,
+            assignedUserName: res.user.fullName,
+            assignedUserEmail: res.user.email,
+          });
+        }
+      }
       const summaryNames = assignedNames.length > 0 ? assignedNames.join(', ') : (primaryGen?.name || 'la flota');
       Alert.alert('Usuario Creado', `El usuario ${newUserName} fue registrado exitosamente asignado a: ${summaryNames}.`);
       setNewUserName('');
       setNewUserEmail('');
       setNewUserPassword('');
+      setNewUserVehicleIds([]);
     } else {
       Alert.alert('Error', res.error || 'No se pudo crear el usuario');
     }
@@ -355,6 +377,14 @@ export const AdminDashboard: React.FC = () => {
     setEditUserGenIds(assigned);
     setEditUserCompanyId(u.companyId || '');
     setEditUserDeptId(u.departmentId || '');
+    const assignedVehIds = vehicles
+      .filter(
+        v =>
+          v.assignedUserId === u.id ||
+          (v.assignedUserEmail && v.assignedUserEmail.toLowerCase() === u.email.toLowerCase())
+      )
+      .map(v => v.id);
+    setEditUserVehicleIds(assignedVehIds);
   };
 
   const handleSaveUserEdits = async () => {
@@ -381,6 +411,28 @@ export const AdminDashboard: React.FC = () => {
       departmentId: editUserDeptId || primaryGen?.departmentId,
       departmentName: targetDept?.name || primaryGen?.departmentName,
     });
+
+    // Sincronizar vehículos asignados a este usuario (habilita o deshabilita el módulo vehicular en app móvil 8082)
+    for (const v of vehicles) {
+      const shouldBeAssigned = editUserVehicleIds.includes(v.id);
+      const isCurrentlyAssigned =
+        v.assignedUserId === editingUser.id ||
+        (v.assignedUserEmail && v.assignedUserEmail.toLowerCase() === editingUser.email.toLowerCase());
+
+      if (shouldBeAssigned && (!isCurrentlyAssigned || v.assignedUserId !== editingUser.id)) {
+        await updateVehicle(v.id, {
+          assignedUserId: editingUser.id,
+          assignedUserName: editUserName.trim(),
+          assignedUserEmail: editingUser.email,
+        });
+      } else if (!shouldBeAssigned && isCurrentlyAssigned) {
+        await updateVehicle(v.id, {
+          assignedUserId: '',
+          assignedUserName: '',
+          assignedUserEmail: '',
+        });
+      }
+    }
 
     setEditingUser(null);
     Alert.alert('Usuario Actualizado', `Se guardaron exitosamente los datos del usuario "${editUserName}".`);
@@ -1386,15 +1438,21 @@ export const AdminDashboard: React.FC = () => {
               vehicles={vehicles}
               vehicleServices={vehicleServices}
               vehicleOdometerLogs={vehicleOdometerLogs}
+              vehicleDocuments={vehicleDocuments}
               companies={companies}
               departments={departments}
               appUsers={appUsers}
+              currentUser={currentUser}
               onSaveVehicle={saveVehicle}
               onUpdateVehicle={updateVehicle}
               onDeleteVehicle={deleteVehicle}
               onAddVehicleService={addVehicleService}
               onDeleteVehicleService={deleteVehicleService}
               onAddVehicleOdometer={addVehicleOdometer}
+              onSaveVehicleDocument={saveVehicleDocument}
+              onUpdateVehicleDocument={updateVehicleDocument}
+              onDeleteVehicleDocument={deleteVehicleDocument}
+              onUpdateAppUser={updateAppUser}
               isDark={isDark}
               colors={{
                 primary: colors.primary,
@@ -1599,6 +1657,51 @@ export const AdminDashboard: React.FC = () => {
                   </View>
                 </View>
 
+                {/* Selector de Vehículos Asignados (Habilita Módulo Móvil 8082) */}
+                <View style={{ marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={[styles.label, { color: textSecondary, marginBottom: 0 }]}>
+                      Vehículo(s) Corporativo(s) a Cargo (Opcional):
+                    </Text>
+                    <Text style={{ fontFamily: F.semibold, color: '#8B5CF6', fontSize: 11 }}>
+                      {newUserVehicleIds.length} asignado{newUserVehicleIds.length === 1 ? '' : 's'}
+                    </Text>
+                  </View>
+                  {vehicles.length === 0 ? (
+                    <Text style={{ fontFamily: F.regular, color: textSecondary, fontSize: 11.5 }}>
+                      No hay vehículos registrados aún en el módulo Vehículos Corporativos.
+                    </Text>
+                  ) : (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {vehicles.map(v => {
+                          const isSel = newUserVehicleIds.includes(v.id);
+                          return (
+                            <TouchableOpacity
+                              key={v.id}
+                              style={[
+                                styles.chipBtn,
+                                { backgroundColor: inputBg, borderColor: isSel ? '#8B5CF6' : borderCol },
+                                isSel && { backgroundColor: '#8B5CF6', borderWidth: 1 },
+                              ]}
+                              onPress={() => toggleNewUserVehicleId(v.id)}
+                            >
+                              <MaterialIcons
+                                name={v.vehicleType === 'car' ? 'directions-car' : 'two-wheeler'}
+                                size={14}
+                                color={isSel ? '#FFFFFF' : textSecondary}
+                              />
+                              <Text style={{ fontFamily: F.bold, fontSize: 11, color: isSel ? '#FFFFFF' : textPrimary }}>
+                                {v.brand} {v.model}{v.plate ? ` (${v.plate})` : ''}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  )}
+                </View>
+
                 <TouchableOpacity 
                   style={[styles.submitUserBtn, { backgroundColor: colors.primary }]}
                   onPress={handleCreateUser}
@@ -1635,9 +1738,16 @@ export const AdminDashboard: React.FC = () => {
                           <View style={styles.userTableAvatar}>
                             <MaterialIcons name="person" size={16} color="#FFFFFF" />
                           </View>
-                          <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 13 }}>
-                            {u.fullName}
-                          </Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: F.bold, color: textPrimary, fontSize: 13 }}>
+                              {u.fullName}
+                            </Text>
+                            {(u.dni || u.phone) && (
+                              <Text style={{ fontFamily: F.regular, color: textSecondary, fontSize: 10.5 }}>
+                                {u.dni ? `C.I: ${u.dni}` : ''} {u.phone ? `· ${u.phone}` : ''} {u.bloodType ? `(${u.bloodType})` : ''}
+                              </Text>
+                            )}
+                          </View>
                         </View>
 
                         <Text style={{ flex: 2, fontFamily: F.medium, color: textSecondary, fontSize: 12 }}>
@@ -3757,6 +3867,50 @@ export const AdminDashboard: React.FC = () => {
                       </View>
                     </ScrollView>
                   </View>
+                </View>
+
+                <View style={{ marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={[styles.label, { color: textSecondary, marginBottom: 0 }]}>
+                      Vehículo(s) a su Cargo (Módulo Vehicular 8082):
+                    </Text>
+                    <Text style={{ fontFamily: F.semibold, color: '#8B5CF6', fontSize: 11 }}>
+                      {editUserVehicleIds.length} asignado{editUserVehicleIds.length === 1 ? '' : 's'}
+                    </Text>
+                  </View>
+                  {vehicles.length === 0 ? (
+                    <Text style={{ fontFamily: F.regular, color: textSecondary, fontSize: 11.5 }}>
+                      No hay vehículos registrados todavía.
+                    </Text>
+                  ) : (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {vehicles.map(v => {
+                          const isSel = editUserVehicleIds.includes(v.id);
+                          return (
+                            <TouchableOpacity
+                              key={v.id}
+                              style={[
+                                styles.chipBtn,
+                                { backgroundColor: inputBg, borderColor: isSel ? '#8B5CF6' : borderCol },
+                                isSel && { backgroundColor: '#8B5CF6', borderWidth: 1 },
+                              ]}
+                              onPress={() => toggleEditUserVehicleId(v.id)}
+                            >
+                              <MaterialIcons
+                                name={v.vehicleType === 'car' ? 'directions-car' : 'two-wheeler'}
+                                size={14}
+                                color={isSel ? '#FFFFFF' : textSecondary}
+                              />
+                              <Text style={{ fontFamily: F.bold, fontSize: 11, color: isSel ? '#FFFFFF' : textPrimary }}>
+                                {v.brand} {v.model}{v.plate ? ` (${v.plate})` : ''}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  )}
                 </View>
 
               </View>

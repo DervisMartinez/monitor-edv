@@ -120,6 +120,15 @@ export interface AppUser {
   departmentName?: string;
   companyId?: string;
   companyName?: string;
+  // Datos de perfil / piloto asignado (Garage EDV)
+  dni?: string;
+  phone?: string;
+  bloodType?: string;
+  licenseGrade?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  city?: string;
+  avatarUrl?: string;
   lastActive?: string;
   createdAt?: string;
 }

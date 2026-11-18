@@ -16,7 +16,8 @@ import {
   VehicleStatus, 
   VehicleServiceRecord, 
   VehicleOdometerRecord, 
-  VehicleComponentType 
+  VehicleComponentType,
+  VehicleDocument
 } from '../../domain/entities/Vehicle';
 import { GENERATOR_CATALOG } from '../../data/catalog';
 import { MOTO_CATALOG, CAR_CATALOG, ALL_VEHICLE_CATALOG } from '../../data/vehicleCatalog';
@@ -174,6 +175,14 @@ export const DEFAULT_VEHICLES: Vehicle[] = [
     departmentName: 'Infraestructura & Operaciones',
     assignedUserId: 'user-op-carlos',
     assignedUserName: 'Carlos Mendoza',
+    assignedUserEmail: 'carlos.mendoza@empresasdelvalle.com',
+    driverDni: 'V-19.482.310',
+    driverPhone: '+58 412-4458912',
+    driverBloodType: 'O+',
+    driverLicenseGrade: '2do Grado (Motos)',
+    driverEmergencyContact: 'María de Mendoza (Esposa)',
+    driverEmergencyPhone: '+58 414-3217788',
+    driverCity: 'Valencia, Edo. Carabobo',
     catalogImageRes: MOTO_CATALOG[0].imageRes,
     createdAt: new Date().toISOString(),
   },
@@ -194,6 +203,14 @@ export const DEFAULT_VEHICLES: Vehicle[] = [
     departmentName: 'Infraestructura & Operaciones',
     assignedUserId: 'user-tec-roberto',
     assignedUserName: 'Roberto Gómez',
+    assignedUserEmail: 'roberto.gomez@empresasdelvalle.com',
+    driverDni: 'V-15.839.104',
+    driverPhone: '+58 414-9824510',
+    driverBloodType: 'A+',
+    driverLicenseGrade: '5to Grado (Carga y 4x4)',
+    driverEmergencyContact: 'Elena Gómez (Hermana)',
+    driverEmergencyPhone: '+58 424-4091122',
+    driverCity: 'Valencia, Edo. Carabobo',
     catalogImageRes: CAR_CATALOG[0].imageRes,
     createdAt: new Date().toISOString(),
   },
@@ -214,6 +231,20 @@ export const DEFAULT_VEHICLE_SERVICES: VehicleServiceRecord[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    id: 'vs-fuel-01',
+    vehicleId: 'veh-keeway-horse-01',
+    userId: 'user-op-carlos',
+    userEmail: 'carlos.mendoza@empresasdelvalle.com',
+    type: 'fuel',
+    date: '2026-11-12',
+    odometer: 14100,
+    costUSD: 5.5,
+    liters: 11,
+    performedBy: 'E/S Bohío Internacional',
+    notes: 'Tanque lleno Gasolina 95 Octanos (11 Litros)',
+    createdAt: new Date().toISOString(),
+  },
+  {
     id: 'vs-02',
     vehicleId: 'veh-toyota-samurai-01',
     userId: 'user-tec-roberto',
@@ -223,7 +254,7 @@ export const DEFAULT_VEHICLE_SERVICES: VehicleServiceRecord[] = [
     odometer: 245000,
     costUSD: 45,
     performedBy: 'Taller Mecánico El Valle',
-    notes: 'Cambio de aceite 20W-50 y filtro de aceite',
+    notes: 'Cambio de aceite 20W-50 y filtro de aceite motor 2F',
     createdAt: new Date().toISOString(),
   },
   {
@@ -239,21 +270,39 @@ export const DEFAULT_VEHICLE_SERVICES: VehicleServiceRecord[] = [
     notes: 'Pastillas de freno delanteras nuevas y rectificación',
     createdAt: new Date().toISOString(),
   },
+  {
+    id: 'vs-fuel-02',
+    vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    userEmail: 'roberto.gomez@empresasdelvalle.com',
+    type: 'fuel',
+    date: '2026-11-14',
+    odometer: 248150,
+    costUSD: 40,
+    liters: 80,
+    performedBy: 'E/S El Prado',
+    notes: 'Carga completa ruta agrícola y silos (80 Litros)',
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 export const DEFAULT_VEHICLE_ODOMETERS: VehicleOdometerRecord[] = [
   {
     id: 'vo-01',
     vehicleId: 'veh-keeway-horse-01',
+    userId: 'user-op-carlos',
+    userEmail: 'Carlos Mendoza',
     odometer: 14250,
     deltaKm: 1250,
     date: new Date().toISOString(),
-    notes: 'Lectura semanal de odómetro',
+    notes: 'Lectura semanal de odómetro - Mensajería sede central',
     createdAt: new Date().toISOString(),
   },
   {
     id: 'vo-02',
     vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    userEmail: 'Roberto Gómez',
     odometer: 248300,
     deltaKm: 3300,
     date: new Date().toISOString(),
@@ -262,7 +311,95 @@ export const DEFAULT_VEHICLE_ODOMETERS: VehicleOdometerRecord[] = [
   },
 ];
 
-// Super Administrador oficial + usuarios iniciales con plantas asignadas
+// Billetera Legal / Papeles de Vehículos y Pilotos de la Flota
+export const DEFAULT_VEHICLE_DOCUMENTS: VehicleDocument[] = [
+  {
+    id: 'vdoc-01',
+    vehicleId: 'veh-keeway-horse-01',
+    userId: 'user-op-carlos',
+    driverName: 'Carlos Mendoza',
+    docCategory: 'vehicle',
+    title: 'Carnet de Circulación',
+    docNumber: 'INTT-MOTO-2024-88912',
+    issueDate: '2024-03-10',
+    expiryDate: '2027-03-10',
+    isPermanent: false,
+    notes: 'Certificado de registro original a nombre de Empresas del Valle S.A.',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vdoc-02',
+    vehicleId: 'veh-keeway-horse-01',
+    userId: 'user-op-carlos',
+    driverName: 'Carlos Mendoza',
+    docCategory: 'vehicle',
+    title: 'Póliza de Seguro RCV',
+    docNumber: 'RCV-SEG-992014',
+    issueDate: '2026-01-15',
+    expiryDate: '2027-01-15',
+    isPermanent: false,
+    notes: 'Póliza de Responsabilidad Civil de Vehículos + Asistencia Vial',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vdoc-03',
+    vehicleId: 'veh-keeway-horse-01',
+    userId: 'user-op-carlos',
+    driverName: 'Carlos Mendoza',
+    docCategory: 'driver',
+    title: 'Licencia de Conducir',
+    docNumber: 'V-19482310-2G',
+    issueDate: '2023-06-20',
+    expiryDate: '2028-06-20',
+    isPermanent: false,
+    notes: 'Licencia de 2do Grado para motocicletas corporativas',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vdoc-04',
+    vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    driverName: 'Roberto Gómez',
+    docCategory: 'vehicle',
+    title: 'Título de Propiedad',
+    docNumber: 'INTT-TIT-1982-FJ60-4410',
+    issueDate: '2018-05-12',
+    expiryDate: 'PERMANENTE',
+    isPermanent: true,
+    notes: 'Título de Propiedad Corporativo - Transportes & Logística Valle',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vdoc-05',
+    vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    driverName: 'Roberto Gómez',
+    docCategory: 'vehicle',
+    title: 'Póliza de Seguro RCV',
+    docNumber: 'RCV-FLOTA-448102',
+    issueDate: '2025-12-01',
+    expiryDate: '2026-12-01',
+    isPermanent: false,
+    notes: 'Póliza Corporativa Todo Riesgo / RCV Flota Pesada y 4x4',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vdoc-06',
+    vehicleId: 'veh-toyota-samurai-01',
+    userId: 'user-tec-roberto',
+    driverName: 'Roberto Gómez',
+    docCategory: 'driver',
+    title: 'Certificado Médico Vial',
+    docNumber: 'CMV-CAR-774120',
+    issueDate: '2025-08-10',
+    expiryDate: '2027-08-10',
+    isPermanent: false,
+    notes: 'Certificado médico para conducir vehículos de 5to grado (Tipiaje: A+)',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+// Super Administrador oficial + usuarios iniciales con plantas y datos de piloto asignados
 export const DEFAULT_APP_USERS: AppUser[] = [
   {
     id: 'user-admin-edv',
@@ -276,6 +413,13 @@ export const DEFAULT_APP_USERS: AppUser[] = [
     companyName: 'Empresas del Valle S.A.',
     departmentId: 'dep-infraestructura',
     departmentName: 'Infraestructura & Operaciones',
+    dni: 'V-14.220.890',
+    phone: '+58 412-4001000',
+    bloodType: 'O+',
+    licenseGrade: '5to Grado',
+    emergencyContactName: 'Central de Seguridad EDV',
+    emergencyContactPhone: '+58 241-8500000',
+    city: 'Valencia, Edo. Carabobo',
     lastActive: 'En línea',
     createdAt: new Date().toISOString(),
   },
@@ -291,6 +435,13 @@ export const DEFAULT_APP_USERS: AppUser[] = [
     companyName: 'Empresas del Valle S.A.',
     departmentId: 'dep-infraestructura',
     departmentName: 'Infraestructura & Operaciones',
+    dni: 'V-20.115.640',
+    phone: '+58 412-8801234',
+    bloodType: 'O+',
+    licenseGrade: '3er Grado (Automóviles)',
+    emergencyContactName: 'Supervisor de Guardia EDV',
+    emergencyContactPhone: '+58 414-4002211',
+    city: 'Valencia, Edo. Carabobo',
     lastActive: 'En línea',
     createdAt: new Date().toISOString(),
   },
@@ -306,6 +457,13 @@ export const DEFAULT_APP_USERS: AppUser[] = [
     companyName: 'Empresas del Valle S.A.',
     departmentId: 'dep-infraestructura',
     departmentName: 'Infraestructura & Operaciones',
+    dni: 'V-19.482.310',
+    phone: '+58 412-4458912',
+    bloodType: 'O+',
+    licenseGrade: '2do Grado (Motos)',
+    emergencyContactName: 'María de Mendoza (Esposa)',
+    emergencyContactPhone: '+58 414-3217788',
+    city: 'Valencia, Edo. Carabobo',
     lastActive: 'Hoy, 08:30 AM',
     createdAt: new Date().toISOString(),
   },
@@ -321,6 +479,13 @@ export const DEFAULT_APP_USERS: AppUser[] = [
     companyName: 'Empresas del Valle S.A.',
     departmentId: 'dep-tecnologia',
     departmentName: 'Tecnología & DataCenter',
+    dni: 'V-15.839.104',
+    phone: '+58 414-9824510',
+    bloodType: 'A+',
+    licenseGrade: '5to Grado (Carga y 4x4)',
+    emergencyContactName: 'Elena Gómez (Hermana)',
+    emergencyContactPhone: '+58 424-4091122',
+    city: 'Valencia, Edo. Carabobo',
     lastActive: 'Ayer, 04:15 PM',
     createdAt: new Date().toISOString(),
   },
@@ -354,7 +519,19 @@ export interface GeneratorContextType {
     assignedGeneratorIds?: string[];
     assignedGeneratorName?: string;
     assignedGeneratorNames?: string[];
+    companyId?: string;
+    companyName?: string;
+    departmentId?: string;
+    departmentName?: string;
+    dni?: string;
+    phone?: string;
+    bloodType?: string;
+    licenseGrade?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    city?: string;
   } | null;
+  userGenerators: Generator[];
   isSuperUser: boolean;
   isAuthenticated: boolean;
 
@@ -418,19 +595,29 @@ export interface GeneratorContextType {
     fullName?: string, 
     role?: 'superadmin' | 'operador' | 'tecnico',
     assignedGeneratorId?: string,
-    assignedGeneratorName?: string
+    assignedGeneratorName?: string,
+    explicitUserId?: string,
+    extraUser?: Partial<AppUser>
   ) => Promise<void>;
 
   // Vehicle Fleet (Garage Corporativo)
   vehicles: Vehicle[];
+  userVehicles: Vehicle[];
+  hasAssignedVehicles: boolean;
+  activeVehicle: Vehicle | null;
+  selectVehicle: (id: string) => void;
   vehicleServices: VehicleServiceRecord[];
   vehicleOdometerLogs: VehicleOdometerRecord[];
+  vehicleDocuments: VehicleDocument[];
   saveVehicle: (vehicle: Vehicle) => Promise<void>;
   updateVehicle: (id: string, updates: Partial<Vehicle>) => Promise<void>;
   deleteVehicle: (id: string) => Promise<{ success: boolean; error?: string }>;
   addVehicleService: (record: Omit<VehicleServiceRecord, 'id' | 'createdAt'>) => Promise<void>;
   deleteVehicleService: (id: string) => Promise<void>;
   addVehicleOdometer: (record: Omit<VehicleOdometerRecord, 'id' | 'createdAt'>) => Promise<{ success: boolean; delta: number }>;
+  saveVehicleDocument: (doc: VehicleDocument) => Promise<void>;
+  updateVehicleDocument: (id: string, updates: Partial<VehicleDocument>) => Promise<void>;
+  deleteVehicleDocument: (id: string) => Promise<void>;
 }
 
 const GeneratorContext = createContext<GeneratorContextType | undefined>(undefined);
@@ -444,73 +631,129 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
   const [appUsers, setAppUsers] = useState<AppUser[]>(DEFAULT_APP_USERS);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(DEFAULT_VEHICLES);
-  const [vehicleServices, setVehicleServices] = useState<VehicleServiceRecord[]>(DEFAULT_VEHICLE_SERVICES);
-  const [vehicleOdometerLogs, setVehicleOdometerLogs] = useState<VehicleOdometerRecord[]>(DEFAULT_VEHICLE_ODOMETERS);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [activeVehicleId, setActiveVehicleId] = useState<string>('');
+  const [vehicleServices, setVehicleServices] = useState<VehicleServiceRecord[]>([]);
+  const [vehicleOdometerLogs, setVehicleOdometerLogs] = useState<VehicleOdometerRecord[]>([]);
+  const [vehicleDocuments, setVehicleDocuments] = useState<VehicleDocument[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isAddingMoto, setIsAddingMoto] = useState(false);
   const [sessionUser, setSessionUser] = useState<any>(null);
 
-  // Active generator memo (null safe)
-  const activeGenerator = useMemo(() => {
-    if (generators.length === 0) return null;
-    return generators.find(g => g.id === activeGeneratorId) || generators[0] || null;
-  }, [generators, activeGeneratorId]);
-
-  // Active ongoing outage (if any outage has no endTime)
-  const activeOutage = useMemo(() => {
-    if (!activeGenerator) return null;
-    return outages.find(o => o.generatorId === activeGenerator.id && !o.endTime) || null;
-  }, [outages, activeGenerator]);
-
-  // Current user info and role
+  // Current user info and role (prioritizing real matched app_user ID & profile)
   const currentUser = useMemo(() => {
-    const email = sessionUser?.email || 'admin@empresasdelvalle.com';
+    const email = (sessionUser?.email || 'admin@empresasdelvalle.com').trim().toLowerCase();
     const isSuper = email.includes('admin') || email.includes('super') || email.includes('gerencia');
-    const matched = appUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const matched = appUsers.find(u => u.email.toLowerCase() === email);
 
     let assignedIds: string[] = [];
     if (matched?.assignedGeneratorIds && matched.assignedGeneratorIds.length > 0) {
       assignedIds = matched.assignedGeneratorIds;
     } else if (matched?.assignedGeneratorId) {
       assignedIds = [matched.assignedGeneratorId];
+    } else if (Array.isArray(sessionUser?.user_metadata?.assigned_generator_ids) && sessionUser.user_metadata.assigned_generator_ids.length > 0) {
+      assignedIds = sessionUser.user_metadata.assigned_generator_ids;
     } else if (sessionUser?.user_metadata?.assigned_generator) {
       assignedIds = [sessionUser.user_metadata.assigned_generator];
     }
 
     return {
-      id: sessionUser?.id || matched?.id || 'admin-001',
+      id: matched?.id || sessionUser?.id || 'admin-001',
       email,
-      fullName: sessionUser?.user_metadata?.first_name 
-        ? `${sessionUser.user_metadata.first_name} ${sessionUser.user_metadata.last_name || ''}`.trim()
-        : (matched?.fullName || 'Super Administrador Empresas del Valle'),
+      fullName: matched?.fullName || (
+        sessionUser?.user_metadata?.first_name
+          ? `${sessionUser.user_metadata.first_name} ${sessionUser.user_metadata.last_name || ''}`.trim()
+          : 'Super Administrador Empresas del Valle'
+      ),
       role: (matched?.role || sessionUser?.user_metadata?.role || (isSuper ? 'superadmin' : 'operador')) as 'superadmin' | 'operador' | 'tecnico',
       assignedGeneratorId: matched?.assignedGeneratorId || assignedIds[0] || sessionUser?.user_metadata?.assigned_generator,
       assignedGeneratorIds: assignedIds,
       assignedGeneratorName: matched?.assignedGeneratorName || sessionUser?.user_metadata?.assigned_generator_name,
       assignedGeneratorNames: matched?.assignedGeneratorNames || [],
+      companyId: matched?.companyId || sessionUser?.user_metadata?.company_id,
+      companyName: matched?.companyName || sessionUser?.user_metadata?.company_name,
+      departmentId: matched?.departmentId || sessionUser?.user_metadata?.department_id,
+      departmentName: matched?.departmentName || sessionUser?.user_metadata?.department_name,
+      dni: matched?.dni,
+      phone: matched?.phone,
+      bloodType: matched?.bloodType,
+      licenseGrade: matched?.licenseGrade,
+      emergencyContactName: matched?.emergencyContactName,
+      emergencyContactPhone: matched?.emergencyContactPhone,
+      city: matched?.city,
     };
   }, [sessionUser, appUsers]);
 
   const isSuperUser = currentUser.role === 'superadmin';
 
+  // Plantas permitidas según oficina / asignación del usuario
+  const userGenerators = useMemo(() => {
+    if (generators.length === 0) return [];
+    if (isSuperUser) return generators;
+    if (currentUser.assignedGeneratorIds && currentUser.assignedGeneratorIds.length > 0) {
+      return generators.filter(g => currentUser.assignedGeneratorIds!.includes(g.id));
+    }
+    if (currentUser.assignedGeneratorId) {
+      return generators.filter(g => g.id === currentUser.assignedGeneratorId);
+    }
+    if (currentUser.companyId) {
+      return generators.filter(
+        g => g.companyId === currentUser.companyId && (!currentUser.departmentId || g.departmentId === currentUser.departmentId)
+      );
+    }
+    return [];
+  }, [generators, isSuperUser, currentUser]);
+
+  // Active generator memo (nunca expone plantas de otra oficina a un operador)
+  const activeGenerator = useMemo(() => {
+    const pool = isSuperUser ? generators : userGenerators;
+    if (pool.length === 0) return null;
+    return pool.find(g => g.id === activeGeneratorId) || pool[0] || null;
+  }, [generators, userGenerators, isSuperUser, activeGeneratorId]);
+
+  // Active ongoing outage for the active generator
+  const activeOutage = useMemo(() => {
+    if (!activeGenerator) return null;
+    return outages.find(o => o.generatorId === activeGenerator.id && !o.endTime) || null;
+  }, [outages, activeGenerator]);
+
+  // Vehículos asignados específicamente al usuario autenticado desde el panel web (8081)
+  const userVehicles = useMemo(() => {
+    if (!sessionUser || vehicles.length === 0) return [];
+    const uid = currentUser.id;
+    const altUid = sessionUser?.id;
+    const uEmail = (currentUser.email || '').trim().toLowerCase();
+    return vehicles.filter(v => {
+      if (v.assignedUserId && (v.assignedUserId === uid || (altUid && v.assignedUserId === altUid))) {
+        return true;
+      }
+      if (v.assignedUserEmail && uEmail && v.assignedUserEmail.trim().toLowerCase() === uEmail) {
+        return true;
+      }
+      return false;
+    });
+  }, [vehicles, sessionUser, currentUser]);
+
+  const hasAssignedVehicles = userVehicles.length > 0;
+
+  const activeVehicle = useMemo(() => {
+    if (userVehicles.length === 0) return null;
+    return userVehicles.find(v => v.id === activeVehicleId) || userVehicles[0] || null;
+  }, [userVehicles, activeVehicleId]);
+
+  useEffect(() => {
+    if (userVehicles.length > 0 && !userVehicles.some(v => v.id === activeVehicleId)) {
+      setActiveVehicleId(userVehicles[0].id);
+    }
+  }, [userVehicles, activeVehicleId]);
+
   // Sincronizar automáticamente la planta activa con alguna de las asignadas al operador/técnico
   useEffect(() => {
-    if (currentUser?.assignedGeneratorIds && currentUser.assignedGeneratorIds.length > 0 && generators.length > 0) {
-      const isCurrentActiveAssigned = currentUser.assignedGeneratorIds.includes(activeGeneratorId);
-      if (!isCurrentActiveAssigned) {
-        const firstValid = generators.find(g => currentUser.assignedGeneratorIds.includes(g.id));
-        if (firstValid) {
-          setActiveGeneratorId(firstValid.id);
-        }
-      }
-    } else if (currentUser?.assignedGeneratorId && generators.length > 0) {
-      const exists = generators.some(g => g.id === currentUser.assignedGeneratorId);
-      if (exists && activeGeneratorId !== currentUser.assignedGeneratorId) {
-        setActiveGeneratorId(currentUser.assignedGeneratorId);
-      }
+    if (isSuperUser) return;
+    if (userGenerators.length > 0 && !userGenerators.some(g => g.id === activeGeneratorId)) {
+      setActiveGeneratorId(userGenerators[0].id);
     }
-  }, [currentUser, generators, activeGeneratorId]);
+  }, [isSuperUser, userGenerators, activeGeneratorId]);
 
   // Persistence Load on Mount
   useEffect(() => {
@@ -530,18 +773,20 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // 2. Load cached local storage
-        const [savedGens, savedLogs, savedOutages, savedServices, savedUsers, savedActiveId, savedCompanies, savedDepts, savedVehicles, savedVehServices, savedVehOdometers] = await Promise.all([
+        const [savedGens, savedLogs, savedOutages, savedServices, savedUsers, savedActiveId, savedActiveVehId, savedCompanies, savedDepts, savedVehicles, savedVehServices, savedVehOdometers, savedVehDocs] = await Promise.all([
           AsyncStorage.getItem('@generators_fleet'),
           AsyncStorage.getItem('@horometer_logs'),
           AsyncStorage.getItem('@power_outages'),
           AsyncStorage.getItem('@generator_services'),
           AsyncStorage.getItem('@app_users'),
           AsyncStorage.getItem('@active_generator_id'),
+          AsyncStorage.getItem('@active_vehicle_id'),
           AsyncStorage.getItem('@edv_companies'),
           AsyncStorage.getItem('@edv_departments'),
           AsyncStorage.getItem('@edv_vehicles'),
           AsyncStorage.getItem('@edv_vehicle_services'),
           AsyncStorage.getItem('@edv_vehicle_odometers'),
+          AsyncStorage.getItem('@edv_vehicle_documents'),
         ]);
 
         if (savedGens) {
@@ -614,9 +859,18 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
                 );
                 const fallbackCatalog = isCar ? CAR_CATALOG[0].imageRes : MOTO_CATALOG[0].imageRes;
                 const hasCustom = Boolean(v.customImageUri || v.imageUrl);
+                const defVeh = DEFAULT_VEHICLES.find(dv => dv.id === v.id);
+                const defUser = DEFAULT_APP_USERS.find(du => du.id === v.assignedUserId);
                 return {
                   ...v,
                   vehicleType: v.vehicleType || (isCar ? 'car' : 'moto'),
+                  driverDni: v.driverDni || defVeh?.driverDni || defUser?.dni,
+                  driverPhone: v.driverPhone || defVeh?.driverPhone || defUser?.phone,
+                  driverBloodType: v.driverBloodType || defVeh?.driverBloodType || defUser?.bloodType,
+                  driverLicenseGrade: v.driverLicenseGrade || defVeh?.driverLicenseGrade || defUser?.licenseGrade,
+                  driverEmergencyContact: v.driverEmergencyContact || defVeh?.driverEmergencyContact || defUser?.emergencyContactName,
+                  driverEmergencyPhone: v.driverEmergencyPhone || defVeh?.driverEmergencyPhone || defUser?.emergencyContactPhone,
+                  driverCity: v.driverCity || defVeh?.driverCity || defUser?.city,
                   customImageUri: v.customImageUri || v.imageUrl || undefined,
                   imageUrl: v.customImageUri || v.imageUrl || undefined,
                   catalogImageRes: hasCustom ? undefined : (catMatch?.imageRes || (isCar ? CAR_CATALOG[0].imageRes : fallbackCatalog)),
@@ -630,19 +884,30 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         if (savedVehServices) {
           try {
             const parsed = JSON.parse(savedVehServices);
-            if (Array.isArray(parsed)) setVehicleServices(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) setVehicleServices(parsed);
           } catch {}
         }
 
         if (savedVehOdometers) {
           try {
             const parsed = JSON.parse(savedVehOdometers);
-            if (Array.isArray(parsed)) setVehicleOdometerLogs(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) setVehicleOdometerLogs(parsed);
+          } catch {}
+        }
+
+        if (savedVehDocs) {
+          try {
+            const parsed = JSON.parse(savedVehDocs);
+            if (Array.isArray(parsed) && parsed.length > 0) setVehicleDocuments(parsed);
           } catch {}
         }
 
         if (savedActiveId) {
           setActiveGeneratorId(savedActiveId);
+        }
+
+        if (savedActiveVehId) {
+          setActiveVehicleId(savedActiveVehId);
         }
 
         // 3. Sincronización en vivo de datos REALES desde Supabase
@@ -684,6 +949,18 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         syncFromSupabase();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'departments' }, () => {
+        syncFromSupabase();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+        syncFromSupabase();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicle_services' }, () => {
+        syncFromSupabase();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicle_odometer_logs' }, () => {
+        syncFromSupabase();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicle_documents' }, () => {
         syncFromSupabase();
       })
       .subscribe();
@@ -886,10 +1163,18 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
             assignedGeneratorId: cu.assigned_generator_id || assignedIds[0],
             assignedGeneratorIds: assignedIds,
             assignedGeneratorName: cu.assigned_generator_name,
+            assignedGeneratorNames: Array.isArray(cu.assigned_generator_names) ? cu.assigned_generator_names : undefined,
             companyId: cu.company_id,
             companyName: cu.company_name,
             departmentId: cu.department_id,
             departmentName: cu.department_name,
+            dni: cu.dni || undefined,
+            phone: cu.phone || undefined,
+            bloodType: cu.blood_type || undefined,
+            licenseGrade: cu.license_grade || undefined,
+            emergencyContactName: cu.emergency_contact_name || undefined,
+            emergencyContactPhone: cu.emergency_contact_phone || undefined,
+            city: cu.city || undefined,
             createdAt: cu.created_at,
             lastActive: 'En línea',
           };
@@ -933,6 +1218,134 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         }));
         setDepartments(mappedDepts);
         await AsyncStorage.setItem('@edv_departments', JSON.stringify(mappedDepts));
+      }
+
+      // H. Flota de Vehículos Corporativos reales
+      const { data: cloudVehs, error: vehsErr } = await supabase
+        .from('vehicles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!vehsErr && Array.isArray(cloudVehs)) {
+        const mappedVehs: Vehicle[] = cloudVehs.map(cv => {
+          const isCar = isCarVehicle({ brand: cv.brand, model: cv.model, vehicleType: cv.vehicle_type });
+          const catMatch = ALL_VEHICLE_CATALOG.find(
+            c =>
+              c.brand.toLowerCase() === (cv.brand || '').toLowerCase() &&
+              c.model.toLowerCase() === (cv.model || '').toLowerCase()
+          );
+          const fallbackCatalog = isCar ? CAR_CATALOG[0]?.imageRes : MOTO_CATALOG[0]?.imageRes;
+          const img = cv.custom_image_uri || cv.image_url || undefined;
+          return {
+            id: cv.id,
+            name: cv.name || undefined,
+            brand: cv.brand,
+            model: cv.model,
+            year: Number(cv.year) || 2024,
+            plate: cv.plate || undefined,
+            vehicleType: (cv.vehicle_type || (isCar ? 'car' : 'moto')) as VehicleType,
+            category: cv.category || undefined,
+            currentOdometer: Number(cv.current_odometer) || 0,
+            status: (cv.status || 'operativo') as VehicleStatus,
+            companyId: cv.company_id || undefined,
+            companyName: cv.company_name || undefined,
+            departmentId: cv.department_id || undefined,
+            departmentName: cv.department_name || undefined,
+            assignedUserId: cv.assigned_user_id || undefined,
+            assignedUserName: cv.assigned_user_name || undefined,
+            assignedUserEmail: cv.assigned_user_email || undefined,
+            driverDni: cv.driver_dni || undefined,
+            driverPhone: cv.driver_phone || undefined,
+            driverBloodType: cv.driver_blood_type || undefined,
+            driverLicenseGrade: cv.driver_license_grade || undefined,
+            driverEmergencyContact: cv.driver_emergency_contact || undefined,
+            driverEmergencyPhone: cv.driver_emergency_phone || undefined,
+            driverCity: cv.driver_city || undefined,
+            imageUrl: img,
+            customImageUri: img,
+            catalogImageRes: img ? undefined : (catMatch?.imageRes || fallbackCatalog),
+            catalogId: cv.catalog_id || undefined,
+            notes: cv.notes || undefined,
+            isFromAgency: Boolean(cv.is_from_agency),
+            createdAt: cv.created_at,
+          };
+        });
+        setVehicles(mappedVehs);
+        await AsyncStorage.setItem('@edv_vehicles', JSON.stringify(mappedVehs));
+      }
+
+      // I. Servicios y combustible de vehículos
+      const { data: cloudVehServs, error: vServsErr } = await supabase
+        .from('vehicle_services')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (!vServsErr && Array.isArray(cloudVehServs)) {
+        const mappedVServs: VehicleServiceRecord[] = cloudVehServs.map(vs => ({
+          id: vs.id,
+          vehicleId: vs.vehicle_id,
+          userId: vs.user_id || undefined,
+          userEmail: vs.user_email || undefined,
+          type: vs.type as VehicleComponentType,
+          date: vs.date,
+          odometer: Number(vs.odometer) || 0,
+          costUSD: vs.cost_usd !== null && vs.cost_usd !== undefined ? Number(vs.cost_usd) : 0,
+          liters: vs.liters !== null && vs.liters !== undefined ? Number(vs.liters) : undefined,
+          notes: vs.notes || undefined,
+          performedBy: vs.performed_by || undefined,
+          isAgency: Boolean(vs.is_agency),
+          createdAt: vs.created_at,
+        }));
+        setVehicleServices(mappedVServs);
+        await AsyncStorage.setItem('@edv_vehicle_services', JSON.stringify(mappedVServs));
+      }
+
+      // J. Lecturas de odómetro de vehículos
+      const { data: cloudVehOdos, error: vOdosErr } = await supabase
+        .from('vehicle_odometer_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!vOdosErr && Array.isArray(cloudVehOdos)) {
+        const mappedVOdos: VehicleOdometerRecord[] = cloudVehOdos.map(vo => ({
+          id: vo.id,
+          vehicleId: vo.vehicle_id,
+          userId: vo.user_id || undefined,
+          userEmail: vo.user_email || undefined,
+          odometer: Number(vo.odometer) || 0,
+          deltaKm: vo.delta_km !== null && vo.delta_km !== undefined ? Number(vo.delta_km) : 0,
+          date: vo.date,
+          notes: vo.notes || undefined,
+          createdAt: vo.created_at,
+        }));
+        setVehicleOdometerLogs(mappedVOdos);
+        await AsyncStorage.setItem('@edv_vehicle_odometers', JSON.stringify(mappedVOdos));
+      }
+
+      // K. Billetera de documentos legales de vehículos y conductores
+      const { data: cloudVehDocs, error: vDocsErr } = await supabase
+        .from('vehicle_documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!vDocsErr && Array.isArray(cloudVehDocs)) {
+        const mappedVDocs: VehicleDocument[] = cloudVehDocs.map(vd => ({
+          id: vd.id,
+          vehicleId: vd.vehicle_id,
+          userId: vd.user_id || undefined,
+          driverName: vd.driver_name || undefined,
+          docCategory: (vd.doc_category || 'vehicle') as 'vehicle' | 'driver',
+          title: vd.title,
+          docNumber: vd.doc_number,
+          issueDate: vd.issue_date || undefined,
+          expiryDate: vd.expiry_date,
+          isPermanent: Boolean(vd.is_permanent),
+          imageUrl: vd.image_url || undefined,
+          notes: vd.notes || undefined,
+          createdAt: vd.created_at,
+        }));
+        setVehicleDocuments(mappedVDocs);
+        await AsyncStorage.setItem('@edv_vehicle_documents', JSON.stringify(mappedVDocs));
       }
 
     } catch (err) {
@@ -1315,6 +1728,7 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       await supabase.from('generator_services').insert([{
+        id: newService.id,
         generator_id: newService.generatorId,
         user_id: newService.userId,
         user_email: newService.userEmail,
@@ -1412,16 +1826,36 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
         await supabase.from('app_users').insert([{
           id: newUser.id,
           email: newUser.email,
-          password: newUser.password,
           full_name: newUser.fullName,
           role: newUser.role,
           assigned_generator_id: newUser.assignedGeneratorId || null,
+          assigned_generator_ids: newUser.assignedGeneratorIds || [],
           assigned_generator_name: newUser.assignedGeneratorName || null,
+          assigned_generator_names: newUser.assignedGeneratorNames || [],
           company_id: newUser.companyId || null,
           company_name: newUser.companyName || null,
           department_id: newUser.departmentId || null,
           department_name: newUser.departmentName || null,
         }]);
+      } else {
+        await supabase
+          .from('app_users')
+          .update({
+            assigned_generator_ids: newUser.assignedGeneratorIds || [],
+            assigned_generator_names: newUser.assignedGeneratorNames || [],
+          })
+          .eq('email', newUser.email);
+
+        const { data: realRow } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('email', newUser.email)
+          .maybeSingle();
+
+        if (realRow?.id && realRow.id !== newUser.id) {
+          newUser.id = realRow.id;
+          await persistAppUsers([newUser, ...appUsers]);
+        }
       }
     } catch (err) {
       console.warn('Error saving app user:', err);
@@ -1438,6 +1872,10 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
       resolvedUpdates.assignedGeneratorId = updates.assignedGeneratorIds[0];
       resolvedUpdates.assignedGeneratorName = names.join(', ');
       resolvedUpdates.assignedGeneratorNames = names;
+    } else if (updates.assignedGeneratorIds && updates.assignedGeneratorIds.length === 0) {
+      resolvedUpdates.assignedGeneratorId = undefined;
+      resolvedUpdates.assignedGeneratorName = 'Sin Asignar';
+      resolvedUpdates.assignedGeneratorNames = [];
     } else if (updates.assignedGeneratorId && !updates.assignedGeneratorName) {
       const matchGen = generators.find(g => g.id === updates.assignedGeneratorId);
       if (matchGen) {
@@ -1465,14 +1903,38 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
       if (resolvedUpdates.fullName !== undefined) dbUpdates.full_name = resolvedUpdates.fullName;
       if (resolvedUpdates.role !== undefined) dbUpdates.role = resolvedUpdates.role;
       if (resolvedUpdates.assignedGeneratorId !== undefined) dbUpdates.assigned_generator_id = resolvedUpdates.assignedGeneratorId || null;
+      if (resolvedUpdates.assignedGeneratorIds !== undefined) dbUpdates.assigned_generator_ids = resolvedUpdates.assignedGeneratorIds || [];
       if (resolvedUpdates.assignedGeneratorName !== undefined) dbUpdates.assigned_generator_name = resolvedUpdates.assignedGeneratorName || null;
+      if (resolvedUpdates.assignedGeneratorNames !== undefined) dbUpdates.assigned_generator_names = resolvedUpdates.assignedGeneratorNames || [];
       if (resolvedUpdates.companyId !== undefined) dbUpdates.company_id = resolvedUpdates.companyId || null;
       if (resolvedUpdates.companyName !== undefined) dbUpdates.company_name = resolvedUpdates.companyName || null;
       if (resolvedUpdates.departmentId !== undefined) dbUpdates.department_id = resolvedUpdates.departmentId || null;
       if (resolvedUpdates.departmentName !== undefined) dbUpdates.department_name = resolvedUpdates.departmentName || null;
+      if (resolvedUpdates.dni !== undefined) dbUpdates.dni = resolvedUpdates.dni || null;
+      if (resolvedUpdates.phone !== undefined) dbUpdates.phone = resolvedUpdates.phone || null;
+      if (resolvedUpdates.bloodType !== undefined) dbUpdates.blood_type = resolvedUpdates.bloodType || null;
+      if (resolvedUpdates.licenseGrade !== undefined) dbUpdates.license_grade = resolvedUpdates.licenseGrade || null;
+      if (resolvedUpdates.emergencyContactName !== undefined) dbUpdates.emergency_contact_name = resolvedUpdates.emergencyContactName || null;
+      if (resolvedUpdates.emergencyContactPhone !== undefined) dbUpdates.emergency_contact_phone = resolvedUpdates.emergencyContactPhone || null;
+      if (resolvedUpdates.city !== undefined) dbUpdates.city = resolvedUpdates.city || null;
 
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from('app_users').update(dbUpdates).eq('id', id);
+      }
+
+      // Sincronizar datos del conductor hacia los vehículos que tenga asignados
+      const driverVehicleUpdates: any = {};
+      if (resolvedUpdates.fullName !== undefined) driverVehicleUpdates.assigned_user_name = resolvedUpdates.fullName;
+      if (resolvedUpdates.dni !== undefined) driverVehicleUpdates.driver_dni = resolvedUpdates.dni || null;
+      if (resolvedUpdates.phone !== undefined) driverVehicleUpdates.driver_phone = resolvedUpdates.phone || null;
+      if (resolvedUpdates.bloodType !== undefined) driverVehicleUpdates.driver_blood_type = resolvedUpdates.bloodType || null;
+      if (resolvedUpdates.licenseGrade !== undefined) driverVehicleUpdates.driver_license_grade = resolvedUpdates.licenseGrade || null;
+      if (resolvedUpdates.emergencyContactName !== undefined) driverVehicleUpdates.driver_emergency_contact = resolvedUpdates.emergencyContactName || null;
+      if (resolvedUpdates.emergencyContactPhone !== undefined) driverVehicleUpdates.driver_emergency_phone = resolvedUpdates.emergencyContactPhone || null;
+      if (resolvedUpdates.city !== undefined) driverVehicleUpdates.driver_city = resolvedUpdates.city || null;
+
+      if (Object.keys(driverVehicleUpdates).length > 0) {
+        await supabase.from('vehicles').update(driverVehicleUpdates).eq('assigned_user_id', id);
       }
     } catch (err) {
       console.warn('Error updating app_user in Supabase:', err);
@@ -1688,16 +2150,25 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
     fullName?: string, 
     role: 'superadmin' | 'operador' | 'tecnico' = 'superadmin',
     assignedGeneratorId?: string,
-    assignedGeneratorName?: string
+    assignedGeneratorName?: string,
+    explicitUserId?: string,
+    extraUser?: Partial<AppUser>
   ) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const matched = appUsers.find(u => u.email.toLowerCase() === cleanEmail);
     const userObj = {
-      id: `usr-${Date.now()}`,
-      email: email.trim().toLowerCase(),
+      id: explicitUserId || matched?.id || `usr-${Date.now()}`,
+      email: cleanEmail,
       user_metadata: { 
-        first_name: fullName || (role === 'superadmin' ? 'Super Administrador' : 'Operador'), 
-        role,
-        assigned_generator: assignedGeneratorId,
-        assigned_generator_name: assignedGeneratorName,
+        first_name: fullName || matched?.fullName || (role === 'superadmin' ? 'Super Administrador' : 'Operador'), 
+        role: matched?.role || role,
+        assigned_generator: assignedGeneratorId || matched?.assignedGeneratorId,
+        assigned_generator_ids: extraUser?.assignedGeneratorIds || matched?.assignedGeneratorIds,
+        assigned_generator_name: assignedGeneratorName || matched?.assignedGeneratorName,
+        company_id: extraUser?.companyId || matched?.companyId,
+        company_name: extraUser?.companyName || matched?.companyName,
+        department_id: extraUser?.departmentId || matched?.departmentId,
+        department_name: extraUser?.departmentName || matched?.departmentName,
       },
     };
     setSessionUser(userObj);
@@ -1707,6 +2178,13 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // 7. Flota de Vehículos (Motos & Carros - Garage Corporativo EDV)
+  const selectVehicle = async (id: string) => {
+    setActiveVehicleId(id);
+    try {
+      await AsyncStorage.setItem('@active_vehicle_id', id);
+    } catch {}
+  };
+
   const persistVehicles = async (newList: Vehicle[]) => {
     setVehicles(newList);
     try {
@@ -1728,23 +2206,70 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
     } catch {}
   };
 
+  const persistVehicleDocuments = async (newList: VehicleDocument[]) => {
+    setVehicleDocuments(newList);
+    try {
+      await AsyncStorage.setItem('@edv_vehicle_documents', JSON.stringify(newList));
+    } catch {}
+  };
+
   const saveVehicle = async (vehicle: Vehicle) => {
-    const exists = vehicles.some(v => v.id === vehicle.id);
+    const matchedUser = vehicle.assignedUserId
+      ? appUsers.find(u => u.id === vehicle.assignedUserId)
+      : (vehicle.assignedUserEmail
+          ? appUsers.find(u => u.email.toLowerCase() === vehicle.assignedUserEmail!.toLowerCase())
+          : undefined);
+
+    const enrichedVehicle: Vehicle = {
+      ...vehicle,
+      assignedUserEmail: vehicle.assignedUserEmail || matchedUser?.email,
+      assignedUserName: vehicle.assignedUserName || matchedUser?.fullName,
+      driverDni: vehicle.driverDni || matchedUser?.dni,
+      driverPhone: vehicle.driverPhone || matchedUser?.phone,
+      driverBloodType: vehicle.driverBloodType || matchedUser?.bloodType,
+      driverLicenseGrade: vehicle.driverLicenseGrade || matchedUser?.licenseGrade,
+      driverEmergencyContact: vehicle.driverEmergencyContact || matchedUser?.emergencyContactName,
+      driverEmergencyPhone: vehicle.driverEmergencyPhone || matchedUser?.emergencyContactPhone,
+      driverCity: vehicle.driverCity || matchedUser?.city,
+    };
+
+    const exists = vehicles.some(v => v.id === enrichedVehicle.id);
     const updated = exists 
-      ? vehicles.map(v => v.id === vehicle.id ? vehicle : v)
-      : [vehicle, ...vehicles];
+      ? vehicles.map(v => v.id === enrichedVehicle.id ? enrichedVehicle : v)
+      : [enrichedVehicle, ...vehicles];
     await persistVehicles(updated);
 
     try {
-      await supabase.from('motos').upsert([{
-        id: vehicle.id,
-        brand: vehicle.brand,
-        model: vehicle.model,
-        year: vehicle.year,
-        plate: vehicle.plate || null,
-        current_odometer: vehicle.currentOdometer,
-        image_url: vehicle.customImageUri || vehicle.imageUrl || null,
-        catalog_id: vehicle.catalogId || null,
+      await supabase.from('vehicles').upsert([{
+        id: enrichedVehicle.id,
+        name: enrichedVehicle.name || null,
+        brand: enrichedVehicle.brand,
+        model: enrichedVehicle.model,
+        year: Number(enrichedVehicle.year) || 2024,
+        plate: enrichedVehicle.plate || null,
+        vehicle_type: enrichedVehicle.vehicleType || (isCarVehicle(enrichedVehicle) ? 'car' : 'moto'),
+        category: enrichedVehicle.category || null,
+        current_odometer: Number(enrichedVehicle.currentOdometer) || 0,
+        status: enrichedVehicle.status || 'operativo',
+        company_id: enrichedVehicle.companyId || null,
+        company_name: enrichedVehicle.companyName || null,
+        department_id: enrichedVehicle.departmentId || null,
+        department_name: enrichedVehicle.departmentName || null,
+        assigned_user_id: enrichedVehicle.assignedUserId || null,
+        assigned_user_name: enrichedVehicle.assignedUserName || null,
+        assigned_user_email: enrichedVehicle.assignedUserEmail || null,
+        driver_dni: enrichedVehicle.driverDni || null,
+        driver_phone: enrichedVehicle.driverPhone || null,
+        driver_blood_type: enrichedVehicle.driverBloodType || null,
+        driver_license_grade: enrichedVehicle.driverLicenseGrade || null,
+        driver_emergency_contact: enrichedVehicle.driverEmergencyContact || null,
+        driver_emergency_phone: enrichedVehicle.driverEmergencyPhone || null,
+        driver_city: enrichedVehicle.driverCity || null,
+        image_url: enrichedVehicle.customImageUri || enrichedVehicle.imageUrl || null,
+        custom_image_uri: enrichedVehicle.customImageUri || null,
+        catalog_id: enrichedVehicle.catalogId || null,
+        notes: enrichedVehicle.notes || null,
+        is_from_agency: Boolean(enrichedVehicle.isFromAgency),
       }]);
     } catch (err) {
       console.warn('Error saving vehicle in Supabase:', err);
@@ -1752,21 +2277,67 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateVehicle = async (id: string, updates: Partial<Vehicle>) => {
-    const updated = vehicles.map(v => v.id === id ? { ...v, ...updates } : v);
+    const resolvedUpdates = { ...updates };
+    if (updates.assignedUserId !== undefined) {
+      if (!updates.assignedUserId) {
+        resolvedUpdates.assignedUserId = undefined;
+        resolvedUpdates.assignedUserName = undefined;
+        resolvedUpdates.assignedUserEmail = undefined;
+      } else {
+        const matchedUser = appUsers.find(u => u.id === updates.assignedUserId);
+        if (matchedUser) {
+          resolvedUpdates.assignedUserName = resolvedUpdates.assignedUserName || matchedUser.fullName;
+          resolvedUpdates.assignedUserEmail = resolvedUpdates.assignedUserEmail || matchedUser.email;
+          if (!resolvedUpdates.driverDni && matchedUser.dni) resolvedUpdates.driverDni = matchedUser.dni;
+          if (!resolvedUpdates.driverPhone && matchedUser.phone) resolvedUpdates.driverPhone = matchedUser.phone;
+          if (!resolvedUpdates.driverBloodType && matchedUser.bloodType) resolvedUpdates.driverBloodType = matchedUser.bloodType;
+          if (!resolvedUpdates.driverLicenseGrade && matchedUser.licenseGrade) resolvedUpdates.driverLicenseGrade = matchedUser.licenseGrade;
+          if (!resolvedUpdates.driverEmergencyContact && matchedUser.emergencyContactName) resolvedUpdates.driverEmergencyContact = matchedUser.emergencyContactName;
+          if (!resolvedUpdates.driverEmergencyPhone && matchedUser.emergencyContactPhone) resolvedUpdates.driverEmergencyPhone = matchedUser.emergencyContactPhone;
+          if (!resolvedUpdates.driverCity && matchedUser.city) resolvedUpdates.driverCity = matchedUser.city;
+        }
+      }
+    }
+
+    const updated = vehicles.map(v => v.id === id ? { ...v, ...resolvedUpdates } : v);
     await persistVehicles(updated);
 
     try {
       const dbUpdates: any = {};
-      if (updates.brand !== undefined) dbUpdates.brand = updates.brand;
-      if (updates.model !== undefined) dbUpdates.model = updates.model;
-      if (updates.year !== undefined) dbUpdates.year = updates.year;
-      if (updates.plate !== undefined) dbUpdates.plate = updates.plate;
-      if (updates.currentOdometer !== undefined) dbUpdates.current_odometer = updates.currentOdometer;
-      if (updates.imageUrl !== undefined || updates.customImageUri !== undefined) {
-        dbUpdates.image_url = updates.customImageUri || updates.imageUrl || null;
+      if (resolvedUpdates.name !== undefined) dbUpdates.name = resolvedUpdates.name || null;
+      if (resolvedUpdates.brand !== undefined) dbUpdates.brand = resolvedUpdates.brand;
+      if (resolvedUpdates.model !== undefined) dbUpdates.model = resolvedUpdates.model;
+      if (resolvedUpdates.year !== undefined) dbUpdates.year = Number(resolvedUpdates.year) || 2024;
+      if (resolvedUpdates.plate !== undefined) dbUpdates.plate = resolvedUpdates.plate || null;
+      if (resolvedUpdates.vehicleType !== undefined) dbUpdates.vehicle_type = resolvedUpdates.vehicleType;
+      if (resolvedUpdates.category !== undefined) dbUpdates.category = resolvedUpdates.category || null;
+      if (resolvedUpdates.currentOdometer !== undefined) dbUpdates.current_odometer = Number(resolvedUpdates.currentOdometer) || 0;
+      if (resolvedUpdates.status !== undefined) dbUpdates.status = resolvedUpdates.status;
+      if (resolvedUpdates.companyId !== undefined) dbUpdates.company_id = resolvedUpdates.companyId || null;
+      if (resolvedUpdates.companyName !== undefined) dbUpdates.company_name = resolvedUpdates.companyName || null;
+      if (resolvedUpdates.departmentId !== undefined) dbUpdates.department_id = resolvedUpdates.departmentId || null;
+      if (resolvedUpdates.departmentName !== undefined) dbUpdates.department_name = resolvedUpdates.departmentName || null;
+      if (resolvedUpdates.assignedUserId !== undefined) dbUpdates.assigned_user_id = resolvedUpdates.assignedUserId || null;
+      if (resolvedUpdates.assignedUserName !== undefined) dbUpdates.assigned_user_name = resolvedUpdates.assignedUserName || null;
+      if (resolvedUpdates.assignedUserEmail !== undefined) dbUpdates.assigned_user_email = resolvedUpdates.assignedUserEmail || null;
+      if (resolvedUpdates.driverDni !== undefined) dbUpdates.driver_dni = resolvedUpdates.driverDni || null;
+      if (resolvedUpdates.driverPhone !== undefined) dbUpdates.driver_phone = resolvedUpdates.driverPhone || null;
+      if (resolvedUpdates.driverBloodType !== undefined) dbUpdates.driver_blood_type = resolvedUpdates.driverBloodType || null;
+      if (resolvedUpdates.driverLicenseGrade !== undefined) dbUpdates.driver_license_grade = resolvedUpdates.driverLicenseGrade || null;
+      if (resolvedUpdates.driverEmergencyContact !== undefined) dbUpdates.driver_emergency_contact = resolvedUpdates.driverEmergencyContact || null;
+      if (resolvedUpdates.driverEmergencyPhone !== undefined) dbUpdates.driver_emergency_phone = resolvedUpdates.driverEmergencyPhone || null;
+      if (resolvedUpdates.driverCity !== undefined) dbUpdates.driver_city = resolvedUpdates.driverCity || null;
+      if (resolvedUpdates.imageUrl !== undefined || resolvedUpdates.customImageUri !== undefined) {
+        const img = resolvedUpdates.customImageUri || resolvedUpdates.imageUrl || null;
+        dbUpdates.image_url = img;
+        dbUpdates.custom_image_uri = resolvedUpdates.customImageUri || null;
       }
+      if (resolvedUpdates.catalogId !== undefined) dbUpdates.catalog_id = resolvedUpdates.catalogId || null;
+      if (resolvedUpdates.notes !== undefined) dbUpdates.notes = resolvedUpdates.notes || null;
+      if (resolvedUpdates.isFromAgency !== undefined) dbUpdates.is_from_agency = Boolean(resolvedUpdates.isFromAgency);
+
       if (Object.keys(dbUpdates).length > 0) {
-        await supabase.from('motos').update(dbUpdates).eq('id', id);
+        await supabase.from('vehicles').update(dbUpdates).eq('id', id);
       }
     } catch (err) {
       console.warn('Error updating vehicle in Supabase:', err);
@@ -1780,20 +2351,87 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
     await persistVehicleServices(updatedServices);
     const updatedOdos = vehicleOdometerLogs.filter(o => o.vehicleId !== id);
     await persistVehicleOdometers(updatedOdos);
+    const updatedDocs = vehicleDocuments.filter(d => d.vehicleId !== id);
+    await persistVehicleDocuments(updatedDocs);
 
     try {
-      await supabase.from('service_records').delete().eq('moto_id', id);
-      await supabase.from('motos').delete().eq('id', id);
+      await supabase.from('vehicle_services').delete().eq('vehicle_id', id);
+      await supabase.from('vehicle_odometer_logs').delete().eq('vehicle_id', id);
+      await supabase.from('vehicle_documents').delete().eq('vehicle_id', id);
+      await supabase.from('vehicles').delete().eq('id', id);
     } catch (err) {
       console.warn('Error deleting vehicle in Supabase:', err);
     }
     return { success: true };
   };
 
+  const saveVehicleDocument = async (doc: VehicleDocument) => {
+    const exists = vehicleDocuments.some(d => d.id === doc.id);
+    const updated = exists
+      ? vehicleDocuments.map(d => d.id === doc.id ? doc : d)
+      : [doc, ...vehicleDocuments];
+    await persistVehicleDocuments(updated);
+
+    try {
+      await supabase.from('vehicle_documents').upsert([{
+        id: doc.id,
+        vehicle_id: doc.vehicleId,
+        user_id: doc.userId || currentUser.id || null,
+        driver_name: doc.driverName || currentUser.fullName || null,
+        doc_category: doc.docCategory || 'vehicle',
+        title: doc.title,
+        doc_number: doc.docNumber,
+        issue_date: doc.issueDate || null,
+        expiry_date: doc.expiryDate,
+        is_permanent: Boolean(doc.isPermanent),
+        image_url: doc.imageUrl || null,
+        notes: doc.notes || null,
+      }]);
+    } catch (err) {
+      console.warn('Error saving vehicle_document in Supabase:', err);
+    }
+  };
+
+  const updateVehicleDocument = async (id: string, updates: Partial<VehicleDocument>) => {
+    const updated = vehicleDocuments.map(d => d.id === id ? { ...d, ...updates } : d);
+    await persistVehicleDocuments(updated);
+
+    try {
+      const dbUpdates: any = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.docCategory !== undefined) dbUpdates.doc_category = updates.docCategory;
+      if (updates.docNumber !== undefined) dbUpdates.doc_number = updates.docNumber;
+      if (updates.issueDate !== undefined) dbUpdates.issue_date = updates.issueDate || null;
+      if (updates.expiryDate !== undefined) dbUpdates.expiry_date = updates.expiryDate;
+      if (updates.isPermanent !== undefined) dbUpdates.is_permanent = Boolean(updates.isPermanent);
+      if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl || null;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+      if (updates.driverName !== undefined) dbUpdates.driver_name = updates.driverName || null;
+
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from('vehicle_documents').update(dbUpdates).eq('id', id);
+      }
+    } catch (err) {
+      console.warn('Error updating vehicle_document in Supabase:', err);
+    }
+  };
+
+  const deleteVehicleDocument = async (id: string) => {
+    const updated = vehicleDocuments.filter(d => d.id !== id);
+    await persistVehicleDocuments(updated);
+    try {
+      await supabase.from('vehicle_documents').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Error deleting vehicle_document in Supabase:', err);
+    }
+  };
+
   const addVehicleService = async (serviceData: Omit<VehicleServiceRecord, 'id' | 'createdAt'>) => {
     const nowIso = new Date().toISOString();
     const newService: VehicleServiceRecord = {
       ...serviceData,
+      userId: serviceData.userId || currentUser.id,
+      userEmail: serviceData.userEmail || currentUser.email,
       id: `vserv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       createdAt: nowIso,
     };
@@ -1807,14 +2445,19 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await supabase.from('service_records').insert([{
+      await supabase.from('vehicle_services').insert([{
         id: newService.id,
-        moto_id: newService.vehicleId,
+        vehicle_id: newService.vehicleId,
+        user_id: newService.userId || null,
+        user_email: newService.userEmail || null,
         type: newService.type,
         date: newService.date,
-        odometer: newService.odometer,
-        cost_usd: newService.costUSD || 0,
+        odometer: Number(newService.odometer) || 0,
+        cost_usd: Number(newService.costUSD) || 0,
+        liters: newService.liters !== undefined ? Number(newService.liters) : 0,
         notes: newService.notes || null,
+        performed_by: newService.performedBy || null,
+        is_agency: Boolean(newService.isAgency),
       }]);
     } catch (err) {
       console.warn('Error saving vehicle service in Supabase:', err);
@@ -1825,7 +2468,7 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
     const updated = vehicleServices.filter(s => s.id !== id);
     await persistVehicleServices(updated);
     try {
-      await supabase.from('service_records').delete().eq('id', id);
+      await supabase.from('vehicle_services').delete().eq('id', id);
     } catch (err) {
       console.warn('Error deleting vehicle service in Supabase:', err);
     }
@@ -1839,6 +2482,8 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
 
     const newRecord: VehicleOdometerRecord = {
       ...odoData,
+      userId: odoData.userId || currentUser.id,
+      userEmail: odoData.userEmail || `${currentUser.fullName} <${currentUser.email}>`,
       id: `vodo-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       deltaKm: delta,
       createdAt: nowIso,
@@ -1849,6 +2494,21 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
 
     if (targetVeh) {
       await updateVehicle(targetVeh.id, { currentOdometer: odoData.odometer });
+    }
+
+    try {
+      await supabase.from('vehicle_odometer_logs').insert([{
+        id: newRecord.id,
+        vehicle_id: newRecord.vehicleId,
+        user_id: newRecord.userId || null,
+        user_email: newRecord.userEmail || null,
+        odometer: Number(newRecord.odometer) || 0,
+        delta_km: Number(newRecord.deltaKm) || 0,
+        date: newRecord.date,
+        notes: newRecord.notes || null,
+      }]);
+    } catch (err) {
+      console.warn('Error saving vehicle odometer log in Supabase:', err);
     }
 
     return { success: true, delta };
@@ -1897,6 +2557,7 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
 
         appUsers,
         currentUser,
+        userGenerators,
         isSuperUser,
         isAuthenticated: Boolean(sessionUser),
 
@@ -1937,14 +2598,22 @@ export const MotoProvider = ({ children }: { children: ReactNode }) => {
 
         // Flota de Vehículos (Garage Corporativo EDV)
         vehicles,
+        userVehicles,
+        hasAssignedVehicles,
+        activeVehicle,
+        selectVehicle,
         vehicleServices,
         vehicleOdometerLogs,
+        vehicleDocuments,
         saveVehicle,
         updateVehicle,
         deleteVehicle,
         addVehicleService,
         deleteVehicleService,
         addVehicleOdometer,
+        saveVehicleDocument,
+        updateVehicleDocument,
+        deleteVehicleDocument,
       }}
     >
       {children}

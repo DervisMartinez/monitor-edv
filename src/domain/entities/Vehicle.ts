@@ -26,6 +26,10 @@ export type VehicleComponentType =
   | 'fuel'
   | 'other';
 
+export type VehicleDocCategory = 'vehicle' | 'driver';
+
+export type VehicleDocStatusType = 'valid' | 'expiring' | 'expired' | 'permanent';
+
 export interface Vehicle {
   id: string;
   name?: string;
@@ -43,6 +47,17 @@ export interface Vehicle {
   departmentName?: string;
   assignedUserId?: string;
   assignedUserName?: string;
+  assignedUserEmail?: string;
+
+  // Datos completos del piloto / conductor asignado (como en Garage moto-app)
+  driverDni?: string;
+  driverPhone?: string;
+  driverBloodType?: string;
+  driverLicenseGrade?: string;
+  driverEmergencyContact?: string;
+  driverEmergencyPhone?: string;
+  driverCity?: string;
+
   imageUrl?: string;
   customImageUri?: string;
   catalogImageRes?: any;
@@ -61,6 +76,7 @@ export interface VehicleServiceRecord {
   date: string;
   odometer: number;
   costUSD?: number;
+  liters?: number; // Para registros de gasolina / combustible (type === 'fuel')
   notes?: string;
   performedBy?: string;
   isAgency?: boolean;
@@ -75,6 +91,22 @@ export interface VehicleOdometerRecord {
   odometer: number;
   deltaKm?: number;
   date: string;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface VehicleDocument {
+  id: string;
+  vehicleId: string;
+  userId?: string;
+  driverName?: string;
+  docCategory: VehicleDocCategory; // 'vehicle' (Papel del Vehículo) | 'driver' (Papel del Piloto)
+  title: string;                   // Ej: 'Carnet de Circulación', 'Seguro / RCV', 'Título de Propiedad', 'Licencia de Conducir', 'Certificado Médico Vial'
+  docNumber: string;               // Número de documento / Póliza / Serial
+  issueDate?: string;              // Fecha de emisión (YYYY-MM-DD)
+  expiryDate: string;              // Fecha de vencimiento (YYYY-MM-DD) o 'PERMANENTE'
+  isPermanent?: boolean;
+  imageUrl?: string;               // Foto / Escaneo / PDF del documento (Archivo local o URL)
   notes?: string;
   createdAt?: string;
 }
